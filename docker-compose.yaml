@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5500:5500"
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgress
+      POSTGRES_DB: test
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
