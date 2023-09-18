@@ -1,15 +1,17 @@
 // import { Sequelize } from "sequelize";
-// import { sequelize } from "..";
+// import { sequelize } from "../db/postgres";
+// import { Ticket } from "./Ticket";
 
-// const User = sequelize.define("User", {
-//   // Model attributes are defined here
+// export const Ticket1 = sequelize.define("Ticket1", {
 //   id: {
-//     type: Sequelize.UUID,
+//     type: Sequelize.INTEGER,
 //     autoIncrement: true,
 //     primaryKey: true,
 //   },
-//   username: Sequelize.STRING,
-//   password: Sequelize.TEXT,
-//   email: Sequelize.TEXT,
-//   role: { type: Sequelize.ENUM, values: ["Provider", "Consumer"] },
+//   title: Sequelize.STRING,
+//   description: Sequelize.TEXT,
+//   status: { type: Sequelize.ENUM, values: ["Available", "Sold Out"] },
+//   price: Sequelize.INTEGER,
+//   discountedPrice: Sequelize.INTEGER,
+//   remaining_number: Sequelize.INTEGER,
 // });

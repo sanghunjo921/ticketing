@@ -4,28 +4,92 @@ export const ticketController = {
   getAllTickets: async (req, res) => {
     const tickets = await Ticket.findAll();
     res.json({
-      messge: "Get all tickets",
+      messge: "showing all tickets",
       data: {
         tickets,
       },
     });
   },
 
-  getTicketsById: (req, res) => {},
+  getTicketsById: async (req, res) => {
+    const ticket = await Ticket.findByPk(req.params.id);
+
+    if (!ticket) {
+      return res.status(404).json({ messge: "a ticket not found" });
+    }
+    res.json({
+      message: "a target ticket is found",
+      data: {
+        ticket,
+      },
+    });
+  },
 
   createTicket: async (req, res) => {
-    const { title, description, status, price, remaining_number } = req.body;
+    const {
+      title,
+      description,
+      status,
+      price,
+      discountedPrice,
+      remaining_number,
+    } = req.body;
     const ticket = await Ticket.create({
       title,
       description,
       status,
       price,
+      discountedPrice,
       remaining_number,
     });
     res.json({
-      message: "post creat ticket",
+      message: "new ticket is created",
       data: {
         ticket,
+      },
+    });
+  },
+
+  updateTicketById: async (req, res) => {
+    const {
+      title,
+      description,
+      status,
+      price,
+      discountedPrice,
+      remaining_number,
+    } = req.body;
+
+    const targetTicket = await Ticket.findOne({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    if (!targetTicket) {
+      return res.status(404).json({ messge: "ticket not found" });
+    }
+    console.log(targetTicket);
+    const updatedTicket = await Ticket.update(
+      {
+        title,
+        description,
+        status,
+        price,
+        discountedPrice,
+        remaining_number,
+      },
+      {
+        where: {
+          id: req.params.id,
+        },
+      }
+    );
+
+    res.json({
+      message: "target updated successfully",
+      data: {
+        updatedTicket,
       },
     });
   },
