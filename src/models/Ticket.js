@@ -14,3 +14,19 @@ export const Ticket = sequelize.define("Ticket", {
   discountedPrice: Sequelize.INTEGER,
   remaining_number: Sequelize.INTEGER,
 });
+
+export const User = sequelize.define("User", {
+  // Model attributes are defined here
+  id: {
+    type: Sequelize.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  username: Sequelize.STRING,
+  password: Sequelize.TEXT,
+  email: Sequelize.TEXT,
+  role: { type: Sequelize.ENUM, values: ["Provider", "Consumer"] },
+});
+
+User.belongsToMany(Ticket, { through: "User_Tickets" });
+Ticket.belongsToMany(User, { through: "User_Tickets" });

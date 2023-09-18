@@ -5,3 +5,4 @@ export const userRouter = express.Router();
 
 userRouter.get("/", userController.getAllUsers);
 userRouter.get("/:id", userController.getUserById);
+userRouter.patch("/:id/:ticketId", userController.buyTicketById);
