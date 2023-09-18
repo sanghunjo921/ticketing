@@ -1,10 +1,9 @@
 import { Sequelize } from "sequelize";
-import { sequelize } from "..";
+import { sequelize } from "../db/postgres";
 
-const Ticket = sequelize.define("Ticket", {
-  // Model attributes are defined here
+export const Ticket = sequelize.define("Ticket", {
   id: {
-    type: Sequelize.UUID,
+    type: Sequelize.INTEGER,
     autoIncrement: true,
     primaryKey: true,
   },
@@ -13,13 +12,5 @@ const Ticket = sequelize.define("Ticket", {
   status: { type: Sequelize.ENUM, values: ["Available", "Sold Out"] },
   price: Sequelize.INTEGER,
   discountedPrice: Sequelize.INTEGER,
-  created_date: {
-    allowNull: false,
-    type: Sequelize.DATE,
-  },
-  updated_date: {
-    allowNull: false,
-    type: Sequelize.DATE,
-  },
   remaining_number: Sequelize.INTEGER,
 });
