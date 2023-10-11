@@ -69,7 +69,6 @@ export const ticketController = {
     if (!targetTicket) {
       return res.status(404).json({ messge: "ticket not found" });
     }
-    console.log(targetTicket);
     const updatedTicket = await Ticket.update(
       {
         title,
