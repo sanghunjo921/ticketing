@@ -8,8 +8,14 @@ export const sequelize = new Sequelize(
     host: "floppy.db.elephantsql.com",
     dialect: "postgres",
     port: 5432,
-    query: {
+    dialectOptions: {
       raw: true,
+    },
+    pool: {
+      max: 1000,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
     },
   }
 );

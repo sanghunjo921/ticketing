@@ -1,5 +1,6 @@
 import { Sequelize } from "sequelize";
 import { sequelize } from "../db/postgres";
+import { DiscountRate } from "./DiscountRate";
 
 export const Ticket = sequelize.define("Ticket", {
   id: {
@@ -16,7 +17,6 @@ export const Ticket = sequelize.define("Ticket", {
 });
 
 export const User = sequelize.define("User", {
-  // Model attributes are defined here
   id: {
     type: Sequelize.INTEGER,
     autoIncrement: true,
@@ -26,7 +26,57 @@ export const User = sequelize.define("User", {
   password: Sequelize.TEXT,
   email: Sequelize.TEXT,
   role: { type: Sequelize.ENUM, values: ["Provider", "Consumer"] },
+  membershipLevel: {
+    type: Sequelize.ENUM,
+    values: ["Platinum", "Gold", "Silver", "Bronze"],
+    defaultValue: "Bronze",
+  },
+  discountRateId: {
+    type: Sequelize.INTEGER,
+    references: {
+      model: DiscountRate,
+      key: "id",
+    },
+  },
+  // refreshToken: Sequelize.STRING,
+});
+
+export const Coupon = sequelize.define("Coupon", {
+  code: {
+    type: Sequelize.STRING,
+    allowNull: false,
+    unique: true,
+  },
+
+  amount: {
+    type: Sequelize.DECIMAL(6, 2),
+    allowNull: false,
+    validate: {
+      isDecimal: true,
+      min: 0,
+      max: function () {
+        return this.isPercentage ? 100 : 100000;
+      },
+    },
+  },
+
+  isPercentage: {
+    type: Sequelize.BOOLEAN,
+    allowNull: false,
+  },
+
+  expiryDate: {
+    type: Sequelize.DATE,
+    allowNull: false,
+  },
 });
 
 User.belongsToMany(Ticket, { through: "User_Tickets" });
 Ticket.belongsToMany(User, { through: "User_Tickets" });
+
+User.belongsToMany(Coupon, { through: "User_Coupons" });
+Coupon.belongsToMany(User, { through: "User_Coupons" });
+
+User.associate = (models) => {
+  User.belongsTo(models.DiscountRate, { foreignKey: "discountRateId" });
+};
