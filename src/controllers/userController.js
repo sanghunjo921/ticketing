@@ -1,11 +1,14 @@
 import { Ticket, User, Coupon } from "../models/Ticket";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Cryptr from "cryptr";
 import { jwtSecretKey } from "../utils";
 import { Transaction } from "../models/Transaction";
 import { DiscountRate } from "../models/DiscountRate";
 import { AuthError } from "../errors/AuthError";
 import { userService } from "../services/userService";
+
+const cryptr = new Cryptr(process.env.CRYTR_KEY || "crytr_key");
 
 export const userController = {
   signUp: async (req, res, next) => {
@@ -84,16 +87,57 @@ export const userController = {
     }
 
     const token = jwt.sign({ username, role: user.role }, jwtSecretKey, {
-      expiresIn: "5m",
+      expiresIn: "1m",
     });
 
-    res.cookie("token", token, { httpOnly: true, maxAge: 1000 * 60 });
+    //refreshtoken이 만료되면 sign in이 다시 이루어져야함
+    const refreshToken = jwt.sign({ username, role: user.role }, jwtSecretKey, {
+      expiresIn: "1w",
+    });
+
+    redisServer.setValue(username, refreshToken);
+
+    res.cookie("r", cryptr.encrypt(refreshToken), {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
     res.json({
       message: "User is signed in successfully",
       data: {
         token,
       },
     });
+  },
+
+  refreshToken: async (req, res, next) => {
+    try {
+      const refreshToken = cryptr.decrypt(req.cookies.r);
+      if (!refreshToken) {
+        res.status(401);
+        throw new Error("Authentication is failed");
+      }
+
+      const { username, role } = jwt.verify(refreshToken, jwtSecretKey);
+
+      const cachedToken = redisServer.getValue(username);
+      if (cachedToken !== refreshToken) {
+        res.status(403);
+        throw new Error("Refresh toekn is not valid");
+      }
+
+      //새로운 access toekn 생성
+      const newToken = jwt.sign({ username, role }, jwtSecretKey, {
+        expiresIn: "1m",
+      });
+      res.json({
+        message: "token is refreshed",
+        data: {
+          newToken,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
   },
 
   getProfile: async (req, res) => {
@@ -250,13 +294,13 @@ export const userController = {
 
           console.log("Found Ticket:", ticket.dataValues);
 
-          const updatedRemainingNumber = ticket.dataValues.remaining_number - 1;
+          // const updatedRemainingNumber = ticket.dataValues.remaining_number - 1;
 
-          console.log("Updated Ticket Remaining:", updatedRemainingNumber);
-          await Ticket.update(
-            { remaining_number: updatedRemainingNumber },
-            { where: { id: ticketIdNumber } }
-          );
+          // console.log("Updated Ticket Remaining:", updatedRemainingNumber);
+          // await Ticket.update(
+          //   { remaining_number: updatedRemainingNumber },
+          //   { where: { id: ticketIdNumber } }
+          // );
         }
       }
 
@@ -294,6 +338,14 @@ export const userController = {
         couponId: coupon ? coupon.id : null,
         totalPrice: appliedPrice,
       });
+
+      const updatedRemainingNumber = ticket.dataValues.remaining_number - 1;
+
+      console.log("Updated Ticket Remaining:", updatedRemainingNumber);
+      await Ticket.update(
+        { remaining_number: updatedRemainingNumber },
+        { where: { id: ticketIdNumber } }
+      );
 
       if (coupon) {
         await user.removeCoupon(coupon);

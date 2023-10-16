@@ -1,0 +1,15 @@
+config:
+  target: "http://localhost:5500"
+  phases:
+    - duration: 1
+      arrivalRate: 1
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  ensure:
+    statusCode: 200
+
+scenarios:
+  - flow:
+      - get:
+          url: "/tickets"
