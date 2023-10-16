@@ -13,7 +13,8 @@ export const authenticated = async (req, res, next) => {
 
   // headers
   try {
-    const token = req.cookies.token;
+    // const token = req.cookies.token;
+    const token = req.headers["x-auth-token"];
     if (!token) {
       res.status(401);
       throw new Error("Authentication is failed");
@@ -51,3 +52,34 @@ export const authorized = (req, res, next) => {
     next(e);
   }
 };
+
+// export const refreshAuth: async (req, res, next) => {
+//     try {
+//       const refreshToken = cryptr.decrypt(req.cookies.r);
+//       if (!refreshToken) {
+//         res.status(401);
+//         throw new Error("Authentication is failed");
+//       }
+
+//       const { username, role } = jwt.verify(refreshToken, jwtSecretKey);
+
+//       const cachedToken = redisServer.getValue(username);
+//       if (cachedToken !== refreshToken) {
+//         res.status(403);
+//         throw new Error("Refresh toekn is not valid");
+//       }
+
+//       //새로운 access toekn 생성
+//       const newToken = jwt.sign({ username, role }, jwtSecretKey, {
+//         expiresIn: "1m",
+//       });
+//       res.json({
+//         message: "token is refreshed",
+//         data: {
+//           newToken,
+//         },
+//       });
+//     } catch (err) {
+//       next(err);
+//     }
+//   };

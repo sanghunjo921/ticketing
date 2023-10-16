@@ -20,3 +20,5 @@ userRouter.post(
 );
 
 userRouter.patch("/users/:id/membership", userController.updateMembershipLevel);
+
+userRouter.get("/refresh", userController.refreshToken);

@@ -6,7 +6,7 @@ import { ticketRouter } from "./routes/ticketRouter";
 import { userRouter } from "./routes/userRouter";
 import { couponRouter } from "./routes/couponRouter";
 import { discountRateRouter } from "./routes/discountRouter";
-import { createClient } from "redis";
+import { createClient } from "ioredis";
 
 const app = express();
 const PORT = process.env.PORT || 5500;
@@ -22,9 +22,8 @@ app.use(errorHandler);
 
 initialize()
   .then(async (message) => {
-    const client = createClient();
-    client.on("err", (err) => console.log("redis error:", err));
-    // await client.connect();
+    const client = createClient(6379, "redis");
+    client.on("error", (err) => console.log("redis error:", err));
 
     console.log(message);
     app.listen(PORT, () => {
