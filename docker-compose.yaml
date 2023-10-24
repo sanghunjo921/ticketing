@@ -8,7 +8,6 @@ services:
       - "5500:5500"
     volumes:
       - ./src:/app/src
-
   redis:
     image: redis:7.2
     restart: always
@@ -18,28 +17,27 @@ services:
     volumes:
       - ./data/redis:/var/lib/redis
       - ./data/redis-config:/usr/local/etc/redis
-
-  # db:
-  #   image: postgres:15
-  #   environment:
-  #     POSTGRES_USER: root
-  #     POSTGRES_PASSWORD: root
-  #     POSTGRES_DB: test_db
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - ./data/db:/var/lib/postgresql/data
-  # pgadmin:
-  #   container_name: pgadmin4_container
-  #   image: dpage/pgadmin4
-  #   restart: always
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@admin.com
-  #     PGADMIN_DEFAULT_PASSWORD: root
-  #   ports:
-  #     - "5050:80"
-  #   depends_on:
-  #     - db
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: test_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+  pgadmin:
+    container_name: pgadmin4_container
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
 # stateful - session 문제 유저가 많아질수록 서버 속도 다운 (세션은 서버 단위를 넘어설수없음). 보안적인 부분은 좋음 마이크로서비스 이런데서 세션처리 불가 그래서 나온게
 # 디비 커넥션이 느리지만 user 개인의 입장이지만 유저가 100만명이면 서버에 100만명에 대한 세션 array가 존재하기에 서버의 인메모리 또는 메모리 캐시서버를 그만큼 쓰니깐 성능 다운
 # 세션을 어디에 저장할지? 디비, 서버 (하면 안됨 - request 저장하는 메인 서버 느려지면 안됨), high traffic을 하더라도 캐시서버를 써서 커버가능
