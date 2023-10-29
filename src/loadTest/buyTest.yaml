@@ -1,0 +1,12 @@
+config:
+  target: "http://localhost:5500"
+  phases:
+    - duration: 1
+      arrivalRate: 1000
+  defaults:
+    headers:
+
+scenarios:
+  - flow:
+      - post:
+          url: "/users/1/tickets/1/purchase"
