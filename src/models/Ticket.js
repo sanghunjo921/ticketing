@@ -1,5 +1,6 @@
 import { Sequelize } from "sequelize";
 import { sequelize } from "../db/postgres";
+import { createDummyTickets } from "../scripts/createDummyTickets";
 import { DiscountRate } from "./DiscountRate";
 
 export const Ticket = sequelize.define("Ticket", {
@@ -80,3 +81,5 @@ Coupon.belongsToMany(User, { through: "User_Coupons" });
 User.associate = (models) => {
   User.belongsTo(models.DiscountRate, { foreignKey: "discountRateId" });
 };
+
+// createDummyTickets();
