@@ -7,7 +7,9 @@ import { userRouter } from "./routes/userRouter";
 import { couponRouter } from "./routes/couponRouter";
 import { discountRateRouter } from "./routes/discountRouter";
 import { createClient } from "ioredis";
+import dotenv from "dotenv";
 
+dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5500;
 
@@ -22,7 +24,7 @@ app.use(errorHandler);
 
 initialize()
   .then(async (message) => {
-    const client = createClient(6379, "redis");
+    const client = createClient(process.env.REDIS_PORT, "redis");
     client.on("error", (err) => console.log("redis error:", err));
 
     console.log(message);

@@ -1,5 +1,16 @@
 version: "3.9"
 services:
+  nginx:
+    container_name: "nginx"
+    build:
+      # nginx directory를 root로 사용
+      context: ./nginx
+      # ./nginx/Dockerfile을 사용해서 build
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - web
   web:
     build:
       context: .
@@ -8,6 +19,9 @@ services:
       - "5500:5500"
     volumes:
       - ./src:/app/src
+    depends_on:
+      - db
+      - redis
   redis:
     image: redis:7.2
     restart: always
@@ -35,7 +49,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: root
     ports:
-      - "5050:80"
+      - "5050:8080"
     depends_on:
       - db
 # stateful - session 문제 유저가 많아질수록 서버 속도 다운 (세션은 서버 단위를 넘어설수없음). 보안적인 부분은 좋음 마이크로서비스 이런데서 세션처리 불가 그래서 나온게
