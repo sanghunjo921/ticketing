@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node dist",
+    "start": "sleep 10 && node dist",
     "dev": "nodemon --exec babel-node src",
     "prebuild": "rm -rf dist",
     "build": "babel src -d dist",
