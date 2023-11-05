@@ -24,8 +24,8 @@ app.use(errorHandler);
 
 initialize()
   .then(async (message) => {
-    const client = createClient(process.env.REDIS_PORT, "redis");
-    client.on("error", (err) => console.log("redis error:", err));
+    // const client = createClient(process.env.REDIS_PORT, "redis");
+    // client.on("error", (err) => console.log("redis error:", err));
 
     console.log(message);
     app.listen(PORT, () => {

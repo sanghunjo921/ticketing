@@ -1,8 +1,14 @@
 import { Ticket } from "../models/Ticket";
+import { redisService } from "../services/RedisService";
 
 export const ticketController = {
   getAllTickets: async (req, res) => {
-    const tickets = await Ticket.findAll();
+    console.log("ticket info from redis");
+    let tickets = JSON.parse(await redisService.getValue("tickets"));
+    if (!tickets) {
+      tickets = await Ticket.findAll();
+      redisService.setValue("tickets", JSON.stringify(tickets));
+    }
     res.json({
       messge: "showing all tickets",
       data: {
