@@ -7,6 +7,7 @@ import { Transaction } from "../models/Transaction";
 import { DiscountRate } from "../models/DiscountRate";
 import { AuthError } from "../errors/AuthError";
 import { userService } from "../services/userService";
+import { redisService } from "../services/RedisService";
 
 const cryptr = new Cryptr(process.env.CRYTR_KEY || "crytr_key");
 
@@ -324,7 +325,17 @@ export const userController = {
       }
 
       if (user.discountRateId) {
-        const discountRate = await DiscountRate.findByPk(user.discountRateId);
+        let discountRate = JSON.parse(
+          await redisService.getValue(`${user.discountRateId}-discountRate`)
+        );
+        if (!discountRate) {
+          discountRate = await DiscountRate.findByPk(user.discountRateId);
+          redisService.setValue(
+            `${user.discountRateId}-discountRate`,
+            JSON.stringify(discountRate)
+          );
+        }
+
         console.log(discountRate.dataValues.discountRatio, "rate");
         appliedPrice -= appliedPrice * discountRate.dataValues.discountRatio;
         appliedPrice = Math.ceil(appliedPrice);
