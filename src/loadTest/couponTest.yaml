@@ -1,0 +1,15 @@
+config:
+  target: "http://localhost"
+  phases:
+    - duration: 1
+      arrivalRate: 1000
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - flow:
+      - post:
+          url: "/users/1/coupon"
+          json:
+            couponId: 1

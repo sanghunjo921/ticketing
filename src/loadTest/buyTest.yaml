@@ -2,11 +2,11 @@ config:
   target: "http://localhost"
   phases:
     - duration: 1
-      arrivalRate: 500
+      arrivalRate: 3000
   defaults:
     headers:
 
 scenarios:
   - flow:
       - post:
-          url: "/users/1/tickets/1/purchase"
+          url: "/users/1/tickets/1000/purchase"
