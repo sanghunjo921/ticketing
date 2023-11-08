@@ -6,8 +6,11 @@ dotenv.config();
 class RedisService {
   constructor() {
     try {
-      this.client = createClient(process.env.REDIS_PORT, "redis");
-      client.on("error", (err) => console.log("redis error:", err));
+      this.client = createClient({
+        port: process.env.REDIS_PORT,
+        host: "redis",
+      });
+      this.client.on("error", (err) => console.log("redis error:", err));
     } catch (e) {
       console.log(e.message);
       if (!this.client) {
@@ -17,11 +20,15 @@ class RedisService {
   }
 
   async setValue(key, value) {
-    this.client.set(key, value);
+    await this.client.set(key, value);
   }
 
   async getValue(key) {
     return this.client.get(key);
+  }
+
+  async removeKey(key) {
+    return this.client.del(key);
   }
 
   async connect() {
