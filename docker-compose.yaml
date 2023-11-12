@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5500:5500"
+      - "5500-5502:5500"
     volumes:
       - ./src:/app/src
     depends_on:
@@ -25,6 +25,8 @@ services:
         restart: true
       redis:
         condition: service_started
+    deploy:
+      replicas: 3
   redis:
     image: redis:7.2
     restart: always
