@@ -8,6 +8,7 @@ import { DiscountRate } from "../models/DiscountRate";
 import { AuthError } from "../errors/AuthError";
 import { userService } from "../services/userService";
 import { redisService } from "../services/RedisService";
+import { logger } from "../middlewares/logger";
 
 const cryptr = new Cryptr(process.env.CRYTR_KEY || "crytr_key");
 
@@ -203,7 +204,10 @@ export const userController = {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      logger.info("started finding a ticket by a key from a db");
       const ticket = await Ticket.findByPk(ticketId);
+      logger.info("finished finding a ticket by a key from a db");
 
       if (!ticket) {
         return res.status(404).json({ error: "Ticket not found" });
@@ -211,7 +215,9 @@ export const userController = {
 
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
 
+      logger.info("started getting ticketData from redis");
       let ticketData = await redisService.getValue(ticketKey);
+      logger.info("finished getting ticketData from redis");
 
       if (!ticketData) {
         ticketData = {
@@ -225,9 +231,13 @@ export const userController = {
         ticketData.quantity += 1;
       }
 
+      logger.info("started setting ticketData on redis");
       redisService.setValue(ticketKey, JSON.stringify(ticketData));
+      logger.info("finished setting ticketData on redis");
 
+      logger.info("adding ticket to user");
       await user.addTicket(ticket);
+      logger.info("finished adding tickets to user");
 
       return res
         .status(200)
@@ -247,7 +257,10 @@ export const userController = {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      logger.info("getting a coupon by a key from a db");
       const coupon = await Coupon.findByPk(couponId);
+      logger.info("finisehd getting a coupon by a key from a db");
 
       if (!coupon) {
         return res.status(404).json({ error: "Coupon not found" });
@@ -255,7 +268,9 @@ export const userController = {
 
       const couponKey = `user:${userId}:coupon:${couponId}`;
 
+      logger.info("getting a coupon from redis");
       let couponData = await redisService.getValue(couponKey);
+      logger.info("finisehd getting a coupon from redis");
 
       if (!couponData) {
         couponData = {
@@ -268,11 +283,15 @@ export const userController = {
         couponData.amount = coupon.amount;
       }
 
+      logger.info("setting a coupon on redis");
       redisService.setValue(couponKey, JSON.stringify(couponData));
+      logger.info("finished setting a coupon");
 
       console.log(`coupon : ${await redisService.getValue(couponKey)}`);
 
+      logger.info("adding a coupon to user");
       await user.addCoupon(coupon);
+      logger.info("finished adding a coupon to user");
 
       return res
         .status(200)
@@ -307,7 +326,10 @@ export const userController = {
 
       const ticketIdNumber = parseInt(ticketId, 10);
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
+
+      logger.info("started getting ticketData from redis");
       const ticketData = JSON.parse(await redisService.getValue(ticketKey));
+      logger.info("finisehd getting ticketData from redis");
 
       let ticket;
 
@@ -345,16 +367,21 @@ export const userController = {
 
       let coupon;
       const redisKey = `user:${userId}:coupon:${couponId}`;
+
+      logger.info("started getting couponData from redis");
       const couponData = JSON.parse(await redisService.getValue(redisKey));
+      logger.info("finished getting couponDat from redis");
 
       if (user.Coupons && user.Coupons.length > 0 && couponData) {
         // couponKey = `coupon:${couponId}`;
         // const cachedCoupon = await redisService.getValue(couponKey);
         // console.log(cachedCoupon);
 
+        logger.info("started getting a right coupon from an user");
         coupon = user.Coupons.find(
           (coupon) => coupon.dataValues.id === couponId
         );
+        logger.info("finished getting a right coupon from an user");
 
         const couponAmount = parseInt(couponData.amount, 10);
 
@@ -398,30 +425,40 @@ export const userController = {
       //   appliedPrice = Math.ceil(appliedPrice);
       // }
 
+      logger.info("started creating a transaction");
       const transaction = await Transaction.create({
         userId: user.id,
         ticketId: parseInt(ticketId, 10),
         couponId: coupon ? coupon.id : null,
         totalPrice: appliedPrice,
       });
+      logger.info("finished creating a transaction");
 
       const updatedRemainingNumber =
         parseInt(ticketData.remaining_number, 10) - 1;
 
+      logger.info("started updating a ticket info");
       await Ticket.update(
         { remaining_number: updatedRemainingNumber },
         { where: { id: parseInt(ticketId, 10) } }
       );
+      logger.info("finished updating a ticket info");
       console.log(coupon);
       if (coupon) {
         try {
           console.log("removing a coupon");
           console.log(couponData.count);
           if (couponData.count < 1) {
+            logger.info("removing a couponKey from redis");
             await redisService.removeKey(redisKey);
+            logger.info("finished removing a couponkey from redis");
+            logger.info("removing a coupon from an user");
             await user.removeCoupon(coupon.id);
+            logger.info("finished removing a coupon from an user");
           } else {
+            logger.info("started updating couponData on redis");
             redisService.setValue(redisKey, JSON.stringify(couponData));
+            logger.info("finished updating couponData on redis");
           }
         } catch (err) {
           next(err);
@@ -431,10 +468,14 @@ export const userController = {
       ticketData.remaining_number = updatedRemainingNumber;
       ticketData.quantity -= 1;
 
+      logger.info("started updating ticketData on redis");
       redisService.setValue(ticketKey, JSON.stringify(ticketData));
+      logger.info("finished updating ticketData on redis");
 
       if (ticketData.quantity < 1) {
+        logger.info("started removing ticketData on redis");
         redisService.removeKey(ticketKey);
+        logger.info("finished removing ticketData on redis");
       }
 
       return res

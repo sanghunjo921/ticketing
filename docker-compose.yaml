@@ -15,8 +15,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "5500-5502:5500"
     volumes:
       - ./src:/app/src
     depends_on:
@@ -26,7 +24,15 @@ services:
       redis:
         condition: service_started
     deploy:
-      replicas: 3
+      replicas: 5
+      resources:
+        limits:
+          cpus: "2"
+          memory: "1000M"
+    expose:
+      - "5500"
+    logging:
+      driver: "json-file"
   redis:
     image: redis:7.2
     restart: always
@@ -52,6 +58,24 @@ services:
       - "5432:5432"
     volumes:
       - ./data/db:/var/lib/postgresql/data
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.0
+    volumes:
+      - ./logstash-config:/usr/share/logstash/config
+    depends_on:
+      - elasticsearch
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
   pgadmin:
     container_name: pgadmin4_container
     image: dpage/pgadmin4

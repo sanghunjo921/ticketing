@@ -6,7 +6,7 @@ import { ticketRouter } from "./routes/ticketRouter";
 import { userRouter } from "./routes/userRouter";
 import { couponRouter } from "./routes/couponRouter";
 import { discountRateRouter } from "./routes/discountRouter";
-import { createClient } from "ioredis";
+import { logger } from "./middlewares/logger";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -24,12 +24,10 @@ app.use(errorHandler);
 
 initialize()
   .then(async (message) => {
-    // const client = createClient(process.env.REDIS_PORT, "redis");
-    // client.on("error", (err) => console.log("redis error:", err));
-
     console.log(message);
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
+      logger.info(`server${PORT}`);
     });
   })
   .catch((err) => {

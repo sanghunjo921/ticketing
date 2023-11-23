@@ -8,6 +8,7 @@
     "dev": "nodemon --exec babel-node src",
     "prebuild": "rm -rf dist",
     "build": "babel src -d dist",
+    "test-load": "artillery run src/loadTest/loadTest.yaml",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -24,7 +25,11 @@
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "redis": "^4.6.10",
-    "sequelize": "^6.32.1"
+    "sequelize": "^6.32.1",
+    "systeminformation": "^5.21.17",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "winston-logstash-transport": "^2.0.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.22.10",
