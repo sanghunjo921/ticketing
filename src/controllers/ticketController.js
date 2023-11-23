@@ -1,20 +1,41 @@
+import { logger } from "../middlewares/logger";
 import { Ticket } from "../models/Ticket";
 import { redisService } from "../services/RedisService";
 
 export const ticketController = {
-  getAllTickets: async (req, res) => {
-    console.log("ticket info from redis");
-    let tickets = JSON.parse(await redisService.getValue("tickets"));
-    if (!tickets) {
-      tickets = await Ticket.findAll();
-      redisService.setValue("tickets", JSON.stringify(tickets));
+  getAllTickets: async (req, res, next) => {
+    try {
+      logger.info("Request received for getAllTickets");
+      logger.info("started getting tickets from redis");
+
+      let tickets = JSON.parse(await redisService.getValue("tickets"));
+
+      logger.info("ended getting tickets from redis");
+
+      if (!tickets) {
+        logger.info("started db access");
+        tickets = await Ticket.findAll();
+        logger.info("ended db access");
+
+        if (tickets) {
+          logger.info("started setting tickets on redis");
+          redisService.setValue("tickets", JSON.stringify(tickets));
+          logger.info("finished setting tickets on redis");
+        } else {
+          logger.error("Error fetching tickets from the database");
+        }
+      }
+
+      res.json({
+        message: "showing all tickets",
+        data: {
+          tickets,
+        },
+      });
+    } catch (error) {
+      logger.error("Error in getAllTickets:", error);
+      next(error);
     }
-    res.json({
-      messge: "showing all tickets",
-      data: {
-        tickets,
-      },
-    });
   },
 
   getTicketsById: async (req, res) => {
