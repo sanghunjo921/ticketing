@@ -204,40 +204,42 @@ export const userController = {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-
-      logger.info("started finding a ticket by a key from a db");
-      const ticket = await Ticket.findByPk(ticketId);
-      logger.info("finished finding a ticket by a key from a db");
-
-      if (!ticket) {
-        return res.status(404).json({ error: "Ticket not found" });
-      }
-
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
+      const ticketRemainingKey = `${ticketKey}:remaining`;
+      const ticketQuantityKey = `${ticketKey}:quantity`;
 
       logger.info("started getting ticketData from redis");
       let ticketData = await redisService.getValue(ticketKey);
       logger.info("finished getting ticketData from redis");
 
+      let ticketRemainingData = await redisService.getValue(ticketRemainingKey);
+      let ticketQuantityData =
+        (await redisService.getValue(ticketQuantityKey)) || 1;
+
       if (!ticketData) {
+        logger.info("started finding a ticket by a key from a db");
+        const ticket = await Ticket.findByPk(ticketId);
+        logger.info("finished finding a ticket by a key from a db");
+
+        if (!ticket) {
+          return res.status(404).json({ error: "Ticket not found" });
+        }
+
+        ticketRemainingData = ticket.remaining_number;
+        redisService.setValue(ticketRemainingKey, ticketRemainingData);
+
         ticketData = {
           status: ticket.status,
           price: ticket.price,
-          remaining_number: ticket.remaining_number,
-          quantity: 1,
         };
+        redisService.setValue(ticketQuantityKey, ticketQuantityData);
       } else {
-        ticketData = JSON.parse(ticketData);
-        ticketData.quantity += 1;
+        await redisService.increBy(ticketQuantityKey);
       }
 
       logger.info("started setting ticketData on redis");
-      redisService.setValue(ticketKey, JSON.stringify(ticketData));
+      redisService.setValue(ticketKey, ticketData);
       logger.info("finished setting ticketData on redis");
-
-      logger.info("adding ticket to user");
-      await user.addTicket(ticket);
-      logger.info("finished adding tickets to user");
 
       return res
         .status(200)
@@ -258,40 +260,38 @@ export const userController = {
         return res.status(404).json({ error: "User not found" });
       }
 
-      logger.info("getting a coupon by a key from a db");
-      const coupon = await Coupon.findByPk(couponId);
-      logger.info("finisehd getting a coupon by a key from a db");
-
-      if (!coupon) {
-        return res.status(404).json({ error: "Coupon not found" });
-      }
-
       const couponKey = `user:${userId}:coupon:${couponId}`;
+      const couponCountKey = `${couponKey}:count`;
 
       logger.info("getting a coupon from redis");
       let couponData = await redisService.getValue(couponKey);
       logger.info("finisehd getting a coupon from redis");
 
+      let couponCountData = (await redisService.getValue(couponCountKey)) || 1;
+
       if (!couponData) {
+        logger.info("getting a coupon by a key from a db");
+        const coupon = await Coupon.findByPk(couponId);
+        logger.info("finisehd getting a coupon by a key from a db");
+
+        if (!coupon) {
+          return res.status(404).json({ error: "Coupon not found" });
+        }
+
         couponData = {
-          count: 1,
           amount: coupon.amount,
+          isPercentage: coupon.isPercentage,
         };
+        redisService.setValue(couponCountKey, couponCountData);
       } else {
-        couponData = JSON.parse(couponData);
-        couponData.count += 1;
-        couponData.amount = coupon.amount;
+        redisService.increBy(couponCountKey);
       }
 
       logger.info("setting a coupon on redis");
-      redisService.setValue(couponKey, JSON.stringify(couponData));
+      redisService.setValue(couponKey, couponData);
       logger.info("finished setting a coupon");
 
       console.log(`coupon : ${await redisService.getValue(couponKey)}`);
-
-      logger.info("adding a coupon to user");
-      await user.addCoupon(coupon);
-      logger.info("finished adding a coupon to user");
 
       return res
         .status(200)
@@ -308,104 +308,78 @@ export const userController = {
 
     try {
       const user = await User.findByPk(userId, {
-        include: [
-          {
-            model: Coupon,
-            through: { attributes: [] },
-          },
-          // {
-          //   model: Ticket,
-          //   through: { attributes: [] },
-          // },
-        ],
+        include: [],
       });
 
       if (!user) {
         throw new AuthError("user not found", 404);
       }
 
-      const ticketIdNumber = parseInt(ticketId, 10);
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
+      const ticketRemainingKey = `${ticketKey}:remaining`;
+      const ticketQuantityKey = `${ticketKey}:quantity`;
 
       logger.info("started getting ticketData from redis");
-      const ticketData = JSON.parse(await redisService.getValue(ticketKey));
+      const ticketData = await redisService.getValue(ticketKey);
       logger.info("finisehd getting ticketData from redis");
 
-      let ticket;
+      let ticketRemainingData = await redisService.getValue(ticketRemainingKey);
+      const ticketQuantityData =
+        (await redisService.getValue(ticketQuantityKey)) || 0;
+
+      if (ticketQuantityData < 1) {
+        logger.info("started removing ticketData on redis");
+        redisService.removeKey(ticketKey);
+        redisService.removeKey(ticketRemainingKey);
+        redisService.removeKey(ticketQuantityKey);
+        logger.info("finished removing ticketData on redis");
+
+        return res.status(400).json({ message: "invalid quantity" });
+      }
 
       if (!ticketData) {
         console.log("User has no tickets");
         return res.status(400).json({ message: "User has no tickets" });
-      } else {
-        if (ticketData.remaining_number < ticketData.quantity) {
-          return res.status(400).json({ message: "No available tickets" });
-        }
       }
 
-      // if (!user.Tickets || user.Tickets.length === 0) {
-      //   console.log("User has no tickets");
-      //   return res.status(400).json({ message: "User has no tickets" });
-      // } else {
-      //   ticket = user.Tickets.find(
-      //     (ticket) => ticket.dataValues.id === ticketIdNumber
-      //   );
+      if (ticketRemainingData < ticketQuantityData) {
+        return res.status(400).json({ message: "No available tickets" });
+      }
 
-      //   if (!ticket) {
-      //     console.log("Ticket not found");
-      //     return res.status(400).json({ message: "Ticket not found" });
-      //   } else {
-      //     if (ticket.dataValues.remaining_number <= 0) {
-      //       return res.status(400).json({ message: "No available tickets" });
-      //     }
-
-      //     console.log("Found Ticket:", ticket.dataValues);
-      //   }
-      // }
-      console.log(ticketData.price, typeof ticketData.price);
-      // let appliedPrice = ticket.price;
       let appliedPrice = ticketData.price;
 
-      let coupon;
-      const redisKey = `user:${userId}:coupon:${couponId}`;
+      const couponKey = `user:${userId}:coupon:${couponId}`;
+      const couponCountKey = `${couponKey}:count`;
 
       logger.info("started getting couponData from redis");
-      const couponData = JSON.parse(await redisService.getValue(redisKey));
+      const couponData = await redisService.getValue(couponKey);
       logger.info("finished getting couponDat from redis");
 
-      if (user.Coupons && user.Coupons.length > 0 && couponData) {
-        // couponKey = `coupon:${couponId}`;
-        // const cachedCoupon = await redisService.getValue(couponKey);
-        // console.log(cachedCoupon);
+      let couponCountData = await redisService.getValue(couponCountKey);
 
-        logger.info("started getting a right coupon from an user");
-        coupon = user.Coupons.find(
-          (coupon) => coupon.dataValues.id === couponId
-        );
-        logger.info("finished getting a right coupon from an user");
+      if (couponCountData < 1) {
+        logger.info("removing a couponKey from redis");
+        await redisService.removeKey(couponKey);
+        await redisService.removeKey(couponCountKey);
+        logger.info("finished removing a couponkey from redis");
+        couponCountData = 0;
+      }
 
+      console.log({ couponData });
+
+      if (couponData && couponCountData) {
         const couponAmount = parseInt(couponData.amount, 10);
 
-        // if (!cachedCoupon) {
-        //   coupon = user.Coupons.find(
-        //     (coupon) => coupon.dataValues.id === couponId
-        //   );
-        //   await redisService.setValue(couponKey, JSON.stringify(coupon));
-        // } else {
-        //   coupon = JSON.parse(cachedCoupon);
-        // }
-
-        // const couponAmount = parseInt(coupon.amount, 10);
-
-        if (coupon) {
-          if (coupon.isPercentage) {
-            appliedPrice = Math.ceil(
-              appliedPrice - (appliedPrice * couponAmount) / 100
-            );
-          } else {
-            appliedPrice = Math.max(appliedPrice - couponAmount, 0);
-          }
+        if (couponData.isPercentage) {
+          appliedPrice = Math.ceil(
+            appliedPrice - (appliedPrice * couponAmount) / 100
+          );
+        } else {
+          appliedPrice = Math.max(appliedPrice - couponAmount, 0);
         }
-        couponData.count = couponData.count - 1;
+        console.log({ couponCountKey, couponCountData, t: "ttt" });
+        await redisService.increBy(couponCountKey, -1);
+        // console.log(await redisService.getValue(couponCountKey));
       }
 
       // if (user.discountRateId) {
@@ -429,54 +403,26 @@ export const userController = {
       const transaction = await Transaction.create({
         userId: user.id,
         ticketId: parseInt(ticketId, 10),
-        couponId: coupon ? coupon.id : null,
+        couponId: couponData ? couponId : null,
         totalPrice: appliedPrice,
       });
       logger.info("finished creating a transaction");
 
-      const updatedRemainingNumber =
-        parseInt(ticketData.remaining_number, 10) - 1;
+      ticketRemainingData = await redisService.increBy(ticketRemainingKey, -1);
 
       logger.info("started updating a ticket info");
       await Ticket.update(
-        { remaining_number: updatedRemainingNumber },
+        { remaining_number: ticketRemainingData },
         { where: { id: parseInt(ticketId, 10) } }
       );
       logger.info("finished updating a ticket info");
-      console.log(coupon);
-      if (coupon) {
-        try {
-          console.log("removing a coupon");
-          console.log(couponData.count);
-          if (couponData.count < 1) {
-            logger.info("removing a couponKey from redis");
-            await redisService.removeKey(redisKey);
-            logger.info("finished removing a couponkey from redis");
-            logger.info("removing a coupon from an user");
-            await user.removeCoupon(coupon.id);
-            logger.info("finished removing a coupon from an user");
-          } else {
-            logger.info("started updating couponData on redis");
-            redisService.setValue(redisKey, JSON.stringify(couponData));
-            logger.info("finished updating couponData on redis");
-          }
-        } catch (err) {
-          next(err);
-        }
-      }
+      console.log(await redisService.getValue(couponCountKey));
 
-      ticketData.remaining_number = updatedRemainingNumber;
-      ticketData.quantity -= 1;
+      await redisService.increBy(ticketQuantityKey, -1);
 
       logger.info("started updating ticketData on redis");
-      redisService.setValue(ticketKey, JSON.stringify(ticketData));
+      redisService.setValue(ticketKey, ticketData);
       logger.info("finished updating ticketData on redis");
-
-      if (ticketData.quantity < 1) {
-        logger.info("started removing ticketData on redis");
-        redisService.removeKey(ticketKey);
-        logger.info("finished removing ticketData on redis");
-      }
 
       return res
         .status(200)

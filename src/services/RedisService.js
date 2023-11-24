@@ -20,11 +20,16 @@ class RedisService {
   }
 
   async setValue(key, value) {
-    await this.client.set(key, value);
+    await this.client.set(key, JSON.stringify(value));
   }
 
   async getValue(key) {
-    return this.client.get(key);
+    const value = await this.client.get(key);
+    return value ? JSON.parse(value) : null;
+  }
+
+  async increBy(key, amount = 1) {
+    return this.client.incrby(key, amount);
   }
 
   async removeKey(key) {
