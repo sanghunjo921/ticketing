@@ -9,6 +9,9 @@
     "prebuild": "rm -rf dist",
     "build": "babel src -d dist",
     "test-load": "artillery run src/loadTest/loadTest.yaml",
+    "test-load-coupon": "artillery run src/loadTest/couponTest.yaml",
+    "test-load-buy": "artillery run src/loadTest/buyTest.yaml",
+    "test-load-reserve": "artillery run src/loadTest/reserve.yaml",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

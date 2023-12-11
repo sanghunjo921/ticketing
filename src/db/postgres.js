@@ -12,10 +12,10 @@ export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
     raw: true,
   },
   pool: {
-    max: 1000,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
+    max: 20,
+    min: 5,
+    acquire: 60000,
+    idle: 20000,
   },
 });
 

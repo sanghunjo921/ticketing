@@ -424,9 +424,7 @@ export const userController = {
       redisService.setValue(ticketKey, ticketData);
       logger.info("finished updating ticketData on redis");
 
-      return res
-        .status(200)
-        .json({ message: "Ticket purchased successfully", transaction });
+      return res.status(200).json({ message: "Ticket purchased successfully" });
     } catch (error) {
       next(error);
     }
