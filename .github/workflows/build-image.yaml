@@ -7,7 +7,7 @@ on:
 jobs:
   build-and-push:
     name: Build container image and push it to ECR.
-    runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v3
 
@@ -21,7 +21,7 @@ jobs:
 
       - name: Build and push Docker image
         env:
-          IMAGE_NAME: realtor-api
+          IMAGE_NAME: ticketing-api
           ECR_REPO_SUFFIX: dkr.ecr.ap-northeast-2.amazonaws.com
           ECR_ACCOUNT: ${{ steps.ecr.outputs.account }}
         run: |
