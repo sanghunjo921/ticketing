@@ -4,27 +4,39 @@ on:
   push:
     branches: ["main"]
 
+env:
+  AWS_REGION: ap-northeast-2 # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: ticketing
+
 jobs:
-  build-and-push:
+  deploy:
     name: Build container image and push it to ECR.
     runs-on: [ubuntu-latest]
+    environment: production
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
-      - name: Login to ECR
-        id: ecr
-        uses: jwalton/gh-ecr-login@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          region: ap-northeast-2
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push Docker image
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
         env:
-          IMAGE_NAME: ticketing-api
-          ECR_REPO_SUFFIX: dkr.ecr.ap-northeast-2.amazonaws.com
-          ECR_ACCOUNT: ${{ steps.ecr.outputs.account }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          SHA_SHORT=$(git rev-parse --short HEAD)
-          docker build -t ${ECR_ACCOUNT}.${ECR_REPO_SUFFIX}/${IMAGE_NAME}:${SHA_SHORT} -f Dockerfile .
-          docker push ${ECR_ACCOUNT}.${ECR_REPO_SUFFIX}/${IMAGE_NAME}:${SHA_SHORT}
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
