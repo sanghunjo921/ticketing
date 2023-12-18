@@ -22,7 +22,7 @@ jobs:
       - name: Build and push Docker image
         env:
           IMAGE_NAME: ticketing-api
-          ECR_REPO_SUFFIX: 829235619109.dkr.ecr.us-east-2.amazonaws.com/ticketing
+          ECR_REPO_SUFFIX: 829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing
           ECR_ACCOUNT: ${{ steps.ecr.outputs.account }}
         run: |
           SHA_SHORT=$(git rev-parse --short HEAD)
