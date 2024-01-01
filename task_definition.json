@@ -1,56 +1,11 @@
 {
-  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:829235619109:task-definition/ticketing-task:1",
+  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:829235619109:task-definition/ticketing_taskDef:1",
   "containerDefinitions": [
     {
-      "name": "ticketing",
-      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing",
-      "cpu": 2,
-      "memory": 1000,
-      "portMappings": [
-        {
-          "name": "ticketing-5500-tcp",
-          "containerPort": 5500,
-          "hostPort": 5500,
-          "protocol": "tcp",
-          "appProtocol": "http"
-        }
-      ],
-      "volumes": [
-        {
-          "host": {
-            "sourcePath": "/app/src"
-          },
-          "name": "app-volume"
-        }
-      ],
-      "essential": true,
-      "dependsOn": [
-        {
-          "containerName": "redis",
-          "condition": "START"
-        },
-        {
-          "containerName": "db",
-          "condition": "HEALTHY"
-        }
-      ],
-      "ulimits": [],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-create-group": "true",
-          "awslogs-group": "/ecs/ticketing-task",
-          "awslogs-region": "ap-northeast-2",
-          "awslogs-stream-prefix": "ecs"
-        },
-        "secretOptions": []
-      }
-    },
-    {
       "name": "nginx",
-      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/nginx",
-      "cpu": 2,
-      "memory": 1000,
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/nginx:Dockerfile",
+      "cpu": 0,
+      "memory": 1024,
       "portMappings": [
         {
           "name": "nginx-80-tcp",
@@ -61,16 +16,69 @@
         }
       ],
       "essential": true,
+      "environment": [],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
       "dependsOn": [
         {
-          "containerName": "ticketing",
+          "containerName": "web",
           "condition": "START"
+        }
+      ],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "true",
+          "awslogs-group": "/ecs/ticketing_taskDef",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      }
+    },
+    {
+      "name": "web",
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:50f1f813888be2bf3b965963c11e1023e20c061c",
+      "cpu": 1024,
+      "memory": 3072,
+      "portMappings": [
+        {
+          "name": "web-5500-tcp",
+          "containerPort": 5500,
+          "hostPort": 5500,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [],
+      "environmentFiles": [],
+      "mountPoints": [
+        {
+          "sourceVolume": "web_vol",
+          "containerPath": "./src:/app/src",
+          "readOnly": false
+        }
+      ],
+      "volumesFrom": [],
+      "dependsOn": [
+        {
+          "containerName": "redis",
+          "condition": "START"
+        },
+        {
+          "containerName": "db",
+          "condition": "HEALTHY"
         }
       ]
     },
     {
       "name": "redis",
-      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/redis",
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/redis:7.2",
+      "cpu": 0,
+      "memory": 1024,
       "portMappings": [
         {
           "name": "redis-6379-tcp",
@@ -81,25 +89,37 @@
         }
       ],
       "essential": true,
-      "command": ["redis-server"],
-      "volumes": [
+      "environment": [],
+      "environmentFiles": [],
+      "mountPoints": [
         {
-          "host": {
-            "sourcePath": "/var/lib/redis"
-          },
-          "name": "redis-volume"
+          "sourceVolume": "redis_vol",
+          "containerPath": "./data/redis:/var/lib/redis",
+          "readOnly": false
         },
         {
-          "host": {
-            "sourcePath": "/usr/local/etc/redis"
-          },
-          "name": "redis-config-volume"
+          "sourceVolume": "redis_vol",
+          "containerPath": "./data/redis-config:/usr/local/etc/redis",
+          "readOnly": false
         }
-      ]
+      ],
+      "volumesFrom": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "true",
+          "awslogs-group": "/ecs/ticketing_taskDef",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      }
     },
     {
       "name": "db",
-      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/postgres",
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/postgres:15",
+      "cpu": 0,
+      "memory": 1024,
       "portMappings": [
         {
           "name": "db-5432-tcp",
@@ -110,16 +130,6 @@
         }
       ],
       "essential": true,
-      "healthCheck": {
-        "command": [
-          "CMD-SHELL",
-          "pg_isready -U root -d test_db -h localhost -p 5432"
-        ],
-        "interval": 10,
-        "timeout": 5,
-        "retries": 5,
-        "startPeriod": 60
-      },
       "environment": [
         {
           "name": "POSTGRES_USER",
@@ -134,22 +144,55 @@
           "value": "test_db"
         }
       ],
-      "volumes": [
+      "environmentFiles": [],
+      "mountPoints": [
         {
-          "host": {
-            "sourcePath": "/var/lib/postgresql/data"
-          },
-          "name": "db-volume"
+          "sourceVolume": "db_vol",
+          "containerPath": "./data/db:/var/lib/postgresql/data",
+          "readOnly": false
         }
-      ]
+      ],
+      "volumesFrom": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "true",
+          "awslogs-group": "/ecs/ticketing_taskDef",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL [\"pg_isready -U root -d test_db -h localhost -p 5432\"]"
+        ],
+        "interval": 10,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 60
+      }
     }
   ],
-  "family": "ticketing-task",
+  "family": "ticketing_taskDef",
   "taskRoleArn": "arn:aws:iam::829235619109:role/ecsTaskExecutionRole",
   "executionRoleArn": "arn:aws:iam::829235619109:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
   "revision": 1,
-  "volumes": [],
+  "volumes": [
+    {
+      "name": "web_vol",
+      "host": {}
+    },
+    {
+      "name": "redis_vol",
+      "host": {}
+    },
+    {
+      "name": "db_vol",
+      "host": {}
+    }
+  ],
   "status": "ACTIVE",
   "requiresAttributes": [
     {
@@ -190,12 +233,12 @@
   "compatibilities": ["EC2", "FARGATE"],
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
-  "memory": "3072",
+  "memory": "7168",
   "runtimePlatform": {
     "cpuArchitecture": "X86_64",
     "operatingSystemFamily": "LINUX"
   },
-  "registeredAt": "2024-01-01T08:18:53.073Z",
+  "registeredAt": "2024-01-01T14:54:56.986Z",
   "registeredBy": "arn:aws:iam::829235619109:user/sanghun",
   "tags": []
 }
