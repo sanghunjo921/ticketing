@@ -3,9 +3,7 @@ services:
   nginx:
     container_name: "nginx"
     build:
-      # nginx directory를 root로 사용
       context: ./nginx
-      # ./nginx/Dockerfile을 사용해서 build
       dockerfile: Dockerfile
     ports:
       - "80:80"
@@ -26,7 +24,7 @@ services:
     deploy:
       replicas: 5
       resources:
-        reservations:
+        limits:
           cpus: "2"
           memory: "1000M"
     expose:
@@ -36,7 +34,7 @@ services:
   redis:
     image: redis:7.2
     restart: always
-    command: ["redis-server", "--save", "3600", "1"]
+    command: redis-server
     ports:
       - "6379:6379"
     volumes:
@@ -58,24 +56,6 @@ services:
       - "5432:5432"
     volumes:
       - ./data/db:/var/lib/postgresql/data
-  # elasticsearch:
-  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
-  #   environment:
-  #     - discovery.type=single-node
-  #   ports:
-  #     - "9200:9200"
-  # logstash:
-  #   image: docker.elastic.co/logstash/logstash:7.15.0
-  #   volumes:
-  #     - ./logstash-config:/usr/share/logstash/config
-  #   depends_on:
-  #     - elasticsearch
-  # kibana:
-  #   image: docker.elastic.co/kibana/kibana:7.15.0
-  #   ports:
-  #     - "5601:5601"
-  #   depends_on:
-  #     - elasticsearch
   pgadmin:
     container_name: pgadmin4_container
     image: dpage/pgadmin4
