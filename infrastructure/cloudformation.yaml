@@ -231,8 +231,8 @@ Resources:
       SubnetId:
         Ref: PrivateSubnetTwo
 
-  # Security Group for GuestBookApp
-  GuestBookAppSecurityGroup:
+  # Security Group
+  TicketingSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow Access to Web Port from anywhere
@@ -244,14 +244,14 @@ Resources:
       VpcId: !Ref VPC
 
   # Application Load Balancer
-  GuestBookAppLoadbalancer:
+  TicketingLoadbalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub "${AWS::StackName}-alb"
       Type: "application"
       Scheme: "internet-facing"
       SecurityGroups:
-        - !Ref GuestBookAppSecurityGroup
+        - !Ref TicketingSecurityGroup
       Subnets:
         - !Ref PublicSubnetOne
         - !Ref PublicSubnetTwo
@@ -296,11 +296,11 @@ Outputs:
     Description: The name of the ECS cluster
     Value: !Ref "ECSCluster"
   LoadbalancerId:
-    Description: The GuestBook App Loadbalancer Arn
-    Value: !Ref "GuestBookAppLoadbalancer"
+    Description: The ticketing Loadbalancer Arn
+    Value: !Ref "TicketingLoadbalancer"
   LoadbalancerEndpoint:
-    Description: The GuestBook App Loadbalancer Endpoint
+    Description: The Ticketing Loadbalancer Endpoint
     Value: !Join
       - ""
       - - "http://"
-        - !GetAtt "GuestBookAppLoadbalancer.DNSName"
+        - !GetAtt "TicketingLoadbalancer.DNSName"

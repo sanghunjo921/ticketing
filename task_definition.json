@@ -1,0 +1,201 @@
+{
+  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:829235619109:task-definition/ticketing-task:1",
+  "containerDefinitions": [
+    {
+      "name": "ticketing",
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing",
+      "cpu": 2,
+      "memory": 1000,
+      "portMappings": [
+        {
+          "name": "ticketing-5500-tcp",
+          "containerPort": 5500,
+          "hostPort": 5500,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "volumes": [
+        {
+          "host": {
+            "sourcePath": "/app/src"
+          },
+          "name": "app-volume"
+        }
+      ],
+      "essential": true,
+      "dependsOn": [
+        {
+          "containerName": "redis",
+          "condition": "START"
+        },
+        {
+          "containerName": "db",
+          "condition": "HEALTHY"
+        }
+      ],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "true",
+          "awslogs-group": "/ecs/ticketing-task",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      }
+    },
+    {
+      "name": "nginx",
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/nginx",
+      "cpu": 2,
+      "memory": 1000,
+      "portMappings": [
+        {
+          "name": "nginx-80-tcp",
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "dependsOn": [
+        {
+          "containerName": "ticketing",
+          "condition": "START"
+        }
+      ]
+    },
+    {
+      "name": "redis",
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/redis",
+      "portMappings": [
+        {
+          "name": "redis-6379-tcp",
+          "containerPort": 6379,
+          "hostPort": 6379,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "command": ["redis-server"],
+      "volumes": [
+        {
+          "host": {
+            "sourcePath": "/var/lib/redis"
+          },
+          "name": "redis-volume"
+        },
+        {
+          "host": {
+            "sourcePath": "/usr/local/etc/redis"
+          },
+          "name": "redis-config-volume"
+        }
+      ]
+    },
+    {
+      "name": "db",
+      "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/postgres",
+      "portMappings": [
+        {
+          "name": "db-5432-tcp",
+          "containerPort": 5432,
+          "hostPort": 5432,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "pg_isready -U root -d test_db -h localhost -p 5432"
+        ],
+        "interval": 10,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 60
+      },
+      "environment": [
+        {
+          "name": "POSTGRES_USER",
+          "value": "root"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "value": "root"
+        },
+        {
+          "name": "POSTGRES_DB",
+          "value": "test_db"
+        }
+      ],
+      "volumes": [
+        {
+          "host": {
+            "sourcePath": "/var/lib/postgresql/data"
+          },
+          "name": "db-volume"
+        }
+      ]
+    }
+  ],
+  "family": "ticketing-task",
+  "taskRoleArn": "arn:aws:iam::829235619109:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::829235619109:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "revision": 1,
+  "volumes": [],
+  "status": "ACTIVE",
+  "requiresAttributes": [
+    {
+      "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+    },
+    {
+      "name": "ecs.capability.execution-role-awslogs"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.ecr-auth"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.task-iam-role"
+    },
+    {
+      "name": "ecs.capability.container-ordering"
+    },
+    {
+      "name": "ecs.capability.container-health-check"
+    },
+    {
+      "name": "ecs.capability.execution-role-ecr-pull"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+    },
+    {
+      "name": "ecs.capability.task-eni"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+    }
+  ],
+  "placementConstraints": [],
+  "compatibilities": ["EC2", "FARGATE"],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "3072",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "registeredAt": "2024-01-01T08:18:53.073Z",
+  "registeredBy": "arn:aws:iam::829235619109:user/sanghun",
+  "tags": []
+}
