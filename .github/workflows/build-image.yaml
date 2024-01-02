@@ -8,7 +8,7 @@ env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: ticketing
   ECS_TASK_DEFINITION: task_def:2
-  CONTAINER_NAME: ticketing
+  CONTAINER_NAME: web
   ECS_SERVICE: ticketing-service
   ECS_CLUSTER: ticketing-compose-infra-cluster
 
@@ -55,7 +55,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: 829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:50f1f813888be2bf3b965963c11e1023e20c061c
+          image: "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:50f1f813888be2bf3b965963c11e1023e20c061c"
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
