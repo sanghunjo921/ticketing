@@ -9,7 +9,7 @@ env:
   ECR_REPOSITORY: ticketing
   ECS_TASK_DEFINITION: task_def:2
   CONTAINER_NAME: web
-  ECS_SERVICE: ticketing-service
+  ECS_SERVICE: task-service
   ECS_CLUSTER: ticketing-compose-infra-cluster
 
 jobs:
