@@ -4,7 +4,8 @@
     {
       "name": "web",
       "image": "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:50f1f813888be2bf3b965963c11e1023e20c061c",
-      "cpu": 0,
+      "cpu": 1024,
+      "memory": 1024,
       "portMappings": [
         {
           "name": "5500",
