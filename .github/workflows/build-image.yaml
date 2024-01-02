@@ -55,7 +55,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image}}
+          image: 829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:50f1f813888be2bf3b965963c11e1023e20c061c
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
