@@ -7,7 +7,7 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: ticketing
-  ECS_TASK_DEFINITION: ticketing_definition.json
+  ECS_TASK_DEFINITION: task_definition.json
   CONTAINER_NAME: ticketing
   ECS_SERVICE: ticketing-service
   ECS_CLUSTER: ticketing-compose-infra-cluster
