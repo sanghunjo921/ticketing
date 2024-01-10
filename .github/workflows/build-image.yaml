@@ -30,42 +30,54 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Get latest version from ECR
+        id: get-latest-version
+        run: |
+          CURRENT_VERSION=$(aws ecr describe-images --repository-name 리포지토리명 --query 'imageDetails[].imageTags[]' --output json | grep "^\"v" | sort -rV | head -n 1 | sed 's/"//g')
+          echo "::set-output name=current_version::$CURRENT_VERSION"
+
+      - name: Increment version
+        id: increment-version
+        run: |
+          NEW_VERSION=$(echo ${{ steps.get-latest-version.outputs.current_version }} | awk -F '.' '{$NF++; print}' OFS='.')
+          echo "::set-output name=new_version::$NEW_VERSION"
+
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          VERSION_TAG: "v1.0.0"
+          NEW_VERSION: ${{ steps.increment-version.outputs.new_version }}
           BUILD_TAG: "latest"
         run: |
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
 
           # ECR에 이미지 푸시
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
 
-      - name: Download Task Definition Template
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ env.ECS_TASK_DEFINITION}} \
-            --query taskDefinition \
-            > task-definition.json
+      # - name: Download Task Definition Template
+      #   run: |
+      #     aws ecs describe-task-definition \
+      #       --task-definition ${{ env.ECS_TASK_DEFINITION}} \
+      #       --query taskDefinition \
+      #       > task-definition.json
 
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: ${{ env.CONTAINER_NAME }}
-          image: "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:50f1f813888be2bf3b965963c11e1023e20c061c"
+      # - name: Fill in the new image ID in the Amazon ECS task definition
+      #   id: task-def
+      #   uses: aws-actions/amazon-ecs-render-task-definition@v1
+      #   with:
+      #     task-definition: task-definition.json
+      #     container-name: ${{ env.CONTAINER_NAME }}
+      #     image: "829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:50f1f813888be2bf3b965963c11e1023e20c061c"
 
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+      # - name: Deploy Amazon ECS task definition
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      #   with:
+      #     task-definition: ${{ steps.task-def.outputs.task-definition }}
+      #     service: ${{ env.ECS_SERVICE }}
+      #     cluster: ${{ env.ECS_CLUSTER }}
+      #     wait-for-service-stability: true
