@@ -33,7 +33,7 @@ jobs:
       - name: Get latest version from ECR
         id: get-latest-version
         run: |
-          CURRENT_VERSION=$(aws ecr describe-images --repository-name 리포지토리명 --query 'imageDetails[].imageTags[]' --output json | grep "^\"v" | sort -rV | head -n 1 | sed 's/"//g')
+          CURRENT_VERSION=$(aws ecr describe-images --repository-name ticketing --query 'imageDetails[].imageTags[]' --output json | grep "^\"v" | sort -rV | head -n 1 | sed 's/"//g')
           echo "::set-output name=current_version::$CURRENT_VERSION"
 
       - name: Increment version
