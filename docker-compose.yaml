@@ -1,6 +1,7 @@
 version: "3.9"
 services:
   nginx:
+    image: 829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/nginx:Dockerfile
     container_name: "nginx"
     build:
       context: ./nginx
@@ -10,6 +11,7 @@ services:
     depends_on:
       - web
   web:
+    image: 829235619109.dkr.ecr.ap-northeast-2.amazonaws.com/ticketing:0b641dbc9cacfff15c568aef37c2672515e2621f
     build:
       context: .
       dockerfile: Dockerfile
@@ -17,7 +19,7 @@ services:
       - ./src:/app/src
     depends_on:
       db:
-        condition: service_healthy
+        conditiorn: service_healthy
         restart: true
       redis:
         condition: service_started
