@@ -7,7 +7,7 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: ticketing
-  ECS_TASK_DEFINITION: task_def:2
+  ECS_TASK_DEFINITION: task_def
   CONTAINER_NAME: web
   ECS_SERVICE: task-service
   ECS_CLUSTER: ticketing-compose-infra-cluster
@@ -17,8 +17,7 @@ jobs:
     name: Build container image and push it to ECR.
     runs-on: [ubuntu-latest]
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -31,40 +30,23 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Get latest version from ECR
-        id: get-latest-version
-        run: |
-          CURRENT_VERSION=$(aws ecr describe-images --repository-name ticketing --query 'imageDetails[].imageTags[]' --output json | grep "^\"v" | sort -rV | head -n 1 | sed 's/"//g')
-          echo "::set-output name=current_version::$CURRENT_VERSION"
-
-      - name: Increment version
-        id: increment-version
-        run: |
-          OLD_VERSION=${{ steps.get-latest-version.outputs.current_version }}
-          IFS='.' read -r -a VERSION_PARTS <<< "$OLD_VERSION"
-          NEW_PATCH=$((VERSION_PARTS[2] + 1)) # Assuming the version format is x.y.z
-          NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$NEW_PATCH"
-          echo "::set-output name=new_version::$NEW_VERSION"
-
       - name: Build, tag, and push image to Amazon ECR
-          id: build-image
-          env:
-            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-            NEW_VERSION: ${{ steps.increment-version.outputs.new_version }}
-            BUILD_TAG: "latest"
-          run: |
-            # Docker 컨테이너 빌드 및
-            # ECR로 푸시하여
-            # ECS에 배포할 수 있도록 합니다.
-            DOCKER_IMAGE_TAG="$ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION"
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          GIT_SHA: ${{ github.sha }}
+          BUILD_TAG: "latest"
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_SHA .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_SHA-$BUILD_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
 
-            docker build -t $DOCKER_IMAGE_TAG .
-            docker tag $DOCKER_IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
-
-            # ECR에 이미지 푸시
-            docker push $DOCKER_IMAGE_TAG
-            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
-
+          # ECR에 이미지 푸시
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_SHA-$BUILD_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
 
       # - name: Download Task Definition Template
       #   run: |
