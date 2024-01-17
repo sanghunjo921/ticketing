@@ -47,21 +47,24 @@ jobs:
           echo "::set-output name=new_version::$NEW_VERSION"
 
       - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          NEW_VERSION: ${{ steps.increment-version.outputs.new_version }}
-          BUILD_TAG: "latest"
-        run: |
-          # Docker 컨테이너 빌드 및
-          # ECR로 푸시하여
-          # ECS에 배포할 수 있도록 합니다.
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
+          id: build-image
+          env:
+            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+            NEW_VERSION: ${{ steps.increment-version.outputs.new_version }}
+            BUILD_TAG: "latest"
+          run: |
+            # Docker 컨테이너 빌드 및
+            # ECR로 푸시하여
+            # ECS에 배포할 수 있도록 합니다.
+            DOCKER_IMAGE_TAG="$ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION"
 
-          # ECR에 이미지 푸시
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$NEW_VERSION
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
+            docker build -t $DOCKER_IMAGE_TAG .
+            docker tag $DOCKER_IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
+
+            # ECR에 이미지 푸시
+            docker push $DOCKER_IMAGE_TAG
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_TAG
+
 
       # - name: Download Task Definition Template
       #   run: |
