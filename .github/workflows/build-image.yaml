@@ -39,7 +39,10 @@ jobs:
       - name: Increment version
         id: increment-version
         run: |
-          NEW_VERSION=$(echo ${{ steps.get-latest-version.outputs.current_version }} | awk -F '.' '{$NF++; print}' OFS='.')
+          OLD_VERSION=${{ steps.get-latest-version.outputs.current_version }}
+          IFS='.' read -r -a VERSION_PARTS <<< "$OLD_VERSION"
+          NEW_PATCH=$((VERSION_PARTS[2] + 1)) # Assuming the version format is x.y.z
+          NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$NEW_PATCH"
           echo "::set-output name=new_version::$NEW_VERSION"
 
       - name: Build, tag, and push image to Amazon ECR

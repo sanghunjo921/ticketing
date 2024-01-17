@@ -8,7 +8,7 @@ class RedisService {
     try {
       this.client = createClient({
         port: process.env.REDIS_PORT,
-        host: "redis",
+        host: process.env.REDIS_HOST,
       });
       this.client.on("error", (err) => console.log("redis error:", err));
     } catch (e) {
