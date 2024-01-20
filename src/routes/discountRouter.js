@@ -7,3 +7,8 @@ discountRateRouter.get(
   "/discountRates",
   discountController.getAllDiscountRates
 );
+
+discountRateRouter.post(
+  "/discountRates",
+  discountController.insertDiscountData
+);

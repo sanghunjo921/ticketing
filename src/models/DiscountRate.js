@@ -28,7 +28,9 @@ const discountRateInstances = Object.keys(discountRatios).map(
   })
 );
 
-// DiscountRate.bulkCreate(discountRateInstances);
+export const insertDiscountData = () => {
+  DiscountRate.bulkCreate(discountRateInstances);
+};
 
 DiscountRate.associate = (models) => {
   DiscountRate.hasMany(models.User, { foreignKey: "discountRateId" });
