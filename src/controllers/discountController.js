@@ -1,4 +1,4 @@
-import { DiscountRate } from "../models/DiscountRate";
+import { DiscountRate, insertDiscountData } from "../models/DiscountRate";
 
 export const discountController = {
   getAllDiscountRates: async (req, res) => {
@@ -8,6 +8,13 @@ export const discountController = {
       data: {
         discounts,
       },
+    });
+  },
+
+  insertDiscountData: async (req, res) => {
+    await insertDiscountData();
+    res.json({
+      message: "created bulk discount rates",
     });
   },
 };

@@ -1,5 +1,6 @@
 import { logger } from "../middlewares/logger";
 import { Ticket } from "../models/Ticket";
+import { createDummyTickets } from "../scripts/createDummyTickets";
 import { redisService } from "../services/RedisService";
 
 export const ticketController = {
@@ -81,6 +82,13 @@ export const ticketController = {
       data: {
         ticket,
       },
+    });
+  },
+
+  createBulkTicket: async (req, res) => {
+    await createDummyTickets();
+    res.json({
+      message: "creaeted bulk tickets",
     });
   },
 
