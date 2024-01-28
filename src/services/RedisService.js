@@ -6,9 +6,11 @@ dotenv.config();
 class RedisService {
   constructor() {
     try {
+      console.log("REDIS_PORT:", process.env.REDIS_PORT);
+      console.log("REDIS_HOST:", process.env.REDIS_HOST);
       this.client = createClient({
         port: process.env.REDIS_PORT,
-        host: process.env.REDIS_HOST,
+        host: process.env.REDIS_HOST || "redis",
       });
       this.client.on("error", (err) => console.log("redis error:", err));
     } catch (e) {

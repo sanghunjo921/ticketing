@@ -10,15 +10,16 @@ export const ticketController = {
       logger.info("started getting tickets from redis");
 
       let tickets = JSON.parse(await redisService.getValue("tickets"));
+      let dbTickets = await Ticket.findAll();
 
       logger.info("ended getting tickets from redis");
 
-      if (!tickets) {
+      if (!tickets && tickets.length === 0) {
         logger.info("started db access");
         tickets = await Ticket.findAll();
         logger.info("ended db access");
 
-        if (tickets) {
+        if (!tickets || tickets.length !== 0) {
           logger.info("started setting tickets on redis");
           redisService.setValue("tickets", JSON.stringify(tickets));
           logger.info("finished setting tickets on redis");

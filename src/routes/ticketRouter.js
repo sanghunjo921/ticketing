@@ -9,4 +9,4 @@ ticketRouter.get("/:id", ticketController.getTicketsById);
 ticketRouter.post("/", authorized, ticketController.createTicket);
 ticketRouter.delete("/:id", authorized, ticketController.deleteTicketById);
 ticketRouter.put("/:id", authorized, ticketController.updateTicketById);
-ticketRouter.post("/dummy/", ticketController.createBulkTicket);
+ticketRouter.post("/dummy", ticketController.createBulkTicket);

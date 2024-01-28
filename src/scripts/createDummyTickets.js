@@ -1,5 +1,6 @@
 import { sequelize } from "../db/postgres";
 import { Ticket } from "../models/Ticket";
+import { redisService } from "../services/RedisService";
 
 const dummyTickets = [];
 
@@ -20,6 +21,9 @@ export const createDummyTickets = async () => {
     console.log("created");
 
     await Ticket.bulkCreate(dummyTickets);
+
+    const tickets = await Ticket.findAll();
+    redisService.setValue("tickets", JSON.stringify(tickets));
 
     console.log("1,000 dummy tickets created successfully.");
   } catch (error) {
