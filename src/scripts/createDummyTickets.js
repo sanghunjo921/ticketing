@@ -29,6 +29,6 @@ export const createDummyTickets = async () => {
   } catch (error) {
     console.error("Error creating dummy tickets:", error);
   } finally {
-    await sequelize.close();
+    // await sequelize.close();
   }
 };
