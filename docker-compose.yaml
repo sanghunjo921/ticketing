@@ -16,11 +16,12 @@ services:
     volumes:
       - ./src:/app/src
     depends_on:
-      db:
-        conditiorn: service_healthy
-        restart: true
-      redis:
-        condition: service_started
+      - db
+        # conditiorn: service_healthy
+        # restart: true
+      - redis
+        # condition: service_started
+    # command: ["./wait-for-services.sh", "db:5432", "redis:6379", "npm", "start"]
     deploy:
       replicas: 5
       resources:
@@ -40,6 +41,8 @@ services:
     volumes:
       - ./data/redis:/var/lib/redis
       - ./data/redis-config:/usr/local/etc/redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
   db:
     image: postgres:15
     healthcheck:
