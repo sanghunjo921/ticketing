@@ -7,20 +7,26 @@ export const ticketController = {
   getAllTickets: async (req, res, next) => {
     try {
       logger.info("Request received for getAllTickets");
+
+      const page = req.query.page || 1;
+      const redisKey = `tickets_page_${page}`;
+
       logger.info("started getting tickets from redis");
-
-      let tickets = JSON.parse(await redisService.getValue("tickets"));
-
+      let tickets = JSON.parse(await redisService.getValue(redisKey));
       logger.info("ended getting tickets from redis");
 
       if (!tickets) {
+        const pageSize = 10;
         logger.info("started db access");
-        tickets = await Ticket.findAll();
+        tickets = await Ticket.findAll({
+          offset: (page - 1) * pageSize,
+          limit: pageSize,
+        });
         logger.info("ended db access");
 
         if (tickets || tickets.length !== 0) {
           logger.info("started setting tickets on redis");
-          redisService.setValue("tickets", JSON.stringify(tickets));
+          redisService.setValue(redisKey, JSON.stringify(tickets));
           logger.info("finished setting tickets on redis");
         } else {
           logger.error("Error fetching tickets from the database");
