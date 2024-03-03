@@ -209,12 +209,21 @@ export const userController = {
       const ticketQuantityKey = `${ticketKey}:quantity`;
 
       logger.info("started getting ticketData from redis");
-      let ticketData = await redisService.getValue(ticketKey);
+      // let ticketData = await redisService.getValue(ticketKey);
+      const [ticketData, ticketRemainingData, ticketQuantityData] =
+        await redisService.mget(
+          ticketKey,
+          ticketRemainingKey,
+          ticketQuantityKey
+        );
       logger.info("finished getting ticketData from redis");
 
-      let ticketRemainingData = await redisService.getValue(ticketRemainingKey);
-      let ticketQuantityData =
-        (await redisService.getValue(ticketQuantityKey)) || 1;
+      // let ticketRemainingData;
+      // let ticketQuantityData =
+      //   (await redisService.getValue(ticketQuantityKey)) || 1;
+      // if (ticketData) {
+      //   ticketRemainingData = await redisService.getValue(ticketRemainingKey);
+      // }
 
       if (!ticketData) {
         logger.info("started finding a ticket by a key from a db");
@@ -226,21 +235,22 @@ export const userController = {
         }
 
         ticketRemainingData = ticket.remaining_number;
-        redisService.setValue(ticketRemainingKey, ticketRemainingData);
 
         ticketData = {
           status: ticket.status,
           price: ticket.price,
         };
-        redisService.setValue(ticketQuantityKey, ticketQuantityData);
+        await redisService.mset(
+          ticketKey,
+          ticketData,
+          ticketRemainingKey,
+          ticketRemainingData,
+          ticketQuantityKey,
+          "1" // Assuming default quantity is 1
+        );
       } else {
         await redisService.increBy(ticketQuantityKey);
       }
-
-      logger.info("started setting ticketData on redis");
-      redisService.setValue(ticketKey, ticketData);
-      logger.info("finished setting ticketData on redis");
-
       return res
         .status(200)
         .json({ message: "Ticket was reserved user successfully" });
