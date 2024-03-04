@@ -38,6 +38,21 @@ class RedisService {
     return this.client.del(key);
   }
 
+  async mgetValue(...keys) {
+    const values = await Promise.all(keys.map((key) => this.client.get(key)));
+    return values.map((value) => (value ? JSON.parse(value) : null));
+  }
+
+  async msetValue(keyValuePairs) {
+    const flattenedPairs = [];
+
+    for (const [key, value] of Object.entries(keyValuePairs)) {
+      flattenedPairs.push(key, JSON.stringify(value));
+    }
+
+    return this.client.mset(flattenedPairs);
+  }
+
   async connect() {
     await this.client.connect();
   }

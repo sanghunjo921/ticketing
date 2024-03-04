@@ -210,8 +210,8 @@ export const userController = {
 
       logger.info("started getting ticketData from redis");
       // let ticketData = await redisService.getValue(ticketKey);
-      const [ticketData, ticketRemainingData, ticketQuantityData] =
-        await redisService.mget(
+      let [ticketData, ticketRemainingData, ticketQuantityData] =
+        await redisService.mgetValue(
           ticketKey,
           ticketRemainingKey,
           ticketQuantityKey
@@ -240,14 +240,11 @@ export const userController = {
           status: ticket.status,
           price: ticket.price,
         };
-        await redisService.mset(
-          ticketKey,
-          ticketData,
-          ticketRemainingKey,
-          ticketRemainingData,
-          ticketQuantityKey,
-          "1" // Assuming default quantity is 1
-        );
+        await redisService.msetValue({
+          [ticketKey]: ticketData,
+          [ticketRemainingKey]: ticketRemainingData,
+          [ticketQuantityKey]: 1, // Assuming default quantity is 1
+        });
       } else {
         await redisService.increBy(ticketQuantityKey);
       }
