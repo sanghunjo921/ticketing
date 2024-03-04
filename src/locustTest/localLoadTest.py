@@ -4,15 +4,12 @@ from locust.runners import MasterRunner
 class MyTasks(TaskSet):
     @task
     def get_tickets(self):
-        load_balancer_dns = "test-936966337.ap-northeast-2.elb.amazonaws.com"
-        url = f"http://{load_balancer_dns}/tickets"
+        url = "http://localhost:80/tickets"
         self.client.get(url)
-
 
 class MyUser(HttpUser):
     wait_time = between(0.5, 2)
     tasks = [MyTasks]
-
 
 class MyCustomShape(LoadTestShape):
     stages = [
@@ -21,7 +18,8 @@ class MyCustomShape(LoadTestShape):
         {"duration": 180, "users": 240000, "spawn_rate": 6666},
         {"duration": 240, "users": 360000, "spawn_rate": 12000},
         {"duration": 300, "users": 500000, "spawn_rate": 28000},      
-    ]  
+    ] 
+    # 700000, 40000/s 
     stage_index = 1
     
     def tick(self):

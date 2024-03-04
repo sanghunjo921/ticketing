@@ -5,5 +5,5 @@ class MyUser(HttpUser):
 
     @task
     def get_tickets(self):
-        url = "http://localhost:80/tickets?page=2"
+        url = "http://localhost:80/tickets"
         self.client.get(url)
