@@ -289,13 +289,13 @@ export const userController = {
           amount: coupon.amount,
           isPercentage: coupon.isPercentage,
         };
-        redisService.setValue(couponCountKey, couponCountData);
+        await redisService.setValue(couponCountKey, couponCountData);
       } else {
-        redisService.increBy(couponCountKey);
+        await redisService.increBy(couponCountKey);
       }
 
       logger.info("setting a coupon on redis");
-      redisService.setValue(couponKey, couponData);
+      await redisService.setValue(couponKey, couponData);
       logger.info("finished setting a coupon");
 
       console.log(`coupon : ${await redisService.getValue(couponKey)}`);
