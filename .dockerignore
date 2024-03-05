@@ -2,6 +2,5 @@ data
 node_modules
 dist
 log
-infrastructure
 src/locustTest
 src/loadTest
