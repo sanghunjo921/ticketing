@@ -15,11 +15,6 @@ provider "aws" {
 
 resource "aws_ecs_cluster" "ticketing_cluster" {
   name = "ticketing-cluster"
-  capacity_providers = ["FARGATE"]
-  default_capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight            = 1
-  }
 }
 
 resource "aws_cloudwatch_log_group" "ticketing_logs" {
@@ -69,7 +64,7 @@ resource "aws_ecs_task_definition" "ticketing_task" {
     "environment": [
       {
         "name": "REDIS_HOST",
-        "value": "43.203.204.177"
+        "value": "13.125.243.9"
       },
       {
         "name": "DB_DIALECT",
@@ -93,7 +88,7 @@ resource "aws_ecs_task_definition" "ticketing_task" {
       },
       {
         "name": "DB_HOST",
-        "value": "43.200.70.70"
+        "value": "43.203.146.190"
       },
       {
         "name": "DB_PASSWORD",
@@ -121,48 +116,29 @@ resource "aws_ecs_task_definition" "ticketing_task" {
 DEFINITION
 }
 
-resource "aws_lb" "ticketing_load_balancer" {
-  name               = "ticketing-load-balancer"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [var.alb_sg_id]
-  subnets            = var.public_subnet_ids
+data "aws_iam_policy_document" "ecs_task_execution_role" {
+  version = "2012-10-17"
 
-  enable_deletion_protection = false
+  statement {
+    sid     = ""
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
 
-  tags = {
-    Name = "ticketing-load-balancer"
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
   }
 }
 
-resource "aws_lb_target_group" "ticketing_target_group" {
-  name        = "ticketing-target-group"
-  port        = 5500
-  protocol    = "HTTP"
-  target_type = "ip"
-  vpc_id      = var.vpc_id
-
-  health_check {
-    enabled             = true
-    interval            = 30
-    path                = "/tickets"
-    port                = 5500
-    protocol            = "HTTP"
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-  }
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name               = "ecs-ticketing-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_execution_role.json
 }
 
-resource "aws_lb_listener" "aws_alb_listener" {
-  load_balancer_arn = aws_lb.ticketing_load_balancer.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ticketing_target_group.arn
-  }
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 resource "aws_ecs_service" "ticketing_service" {
@@ -170,23 +146,23 @@ resource "aws_ecs_service" "ticketing_service" {
   cluster         = aws_ecs_cluster.ticketing_cluster.id
   task_definition = aws_ecs_task_definition.ticketing_task.arn
   desired_count   = 1
-
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight            = 1
-  }
+  launch_type     = "FARGATE"
 
   force_new_deployment = true
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.ticketing_target_group.arn
+    target_group_arn = aws_lb_target_group.ticketing_tg.arn
     container_name   = "web"
-    container_port   = 5500
+    container_port   = var.container_port
   }
 
   network_configuration {
-    subnets          = var.subnet_ids
-    security_groups  = [var.sg_id]
-    assign_public_ip = false
+    subnets          = aws_subnet.public.*.id
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
   }
+
+  depends_on = [
+    aws_lb_listener.ticketing_http_listener,
+  ]
 }
