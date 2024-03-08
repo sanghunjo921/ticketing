@@ -2,3 +2,4 @@ data
 dist
 node_modules
 log
+infrastructure/terraform/dev.tfvars
