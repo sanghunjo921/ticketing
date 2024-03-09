@@ -55,8 +55,8 @@ resource "aws_ecs_task_definition" "ticketing_task" {
     "essential": true,
     "portMappings": [
       {
-        "containerPort": 5500,
-        "hostPort": 5500,
+        "containerPort": var.container_port,
+        "hostPort": var.host_port,
         "protocol": "tcp",
         "appProtocol": "http"
       }
@@ -64,35 +64,35 @@ resource "aws_ecs_task_definition" "ticketing_task" {
     "environment": [
       {
         "name": "REDIS_HOST",
-        "value": "13.125.243.9"
+        "value": var.REDIS_HOST
       },
       {
         "name": "DB_DIALECT",
-        "value": "postgres"
+        "value": var.DB_DIALECT
       },
       {
         "name": "REDIS_PORT",
-        "value": "6379"
+        "value": var.REDIS_PORT
       },
       {
         "name": "DB_PORT",
-        "value": "5432"
+        "value": var.DB_PORT
       },
       {
         "name": "DB_USER",
-        "value": "root"
+        "value": var.DB_USER
       },
       {
         "name": "DB_NAME",
-        "value": "test_db"
+        "value": var.DB_NAME
       },
       {
         "name": "DB_HOST",
-        "value": "43.203.146.190"
+        "value": var.DB_HOST
       },
       {
         "name": "DB_PASSWORD",
-        "value": "root"
+        "value": var.DB_PASSWORD
       }
     ],
     "mountPoints": [
