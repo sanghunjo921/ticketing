@@ -9,6 +9,7 @@ import { AuthError } from "../errors/AuthError";
 import { userService } from "../services/userService";
 import { redisService } from "../services/RedisService";
 import { logger } from "../middlewares/logger";
+import { sequelize } from "../db/postgres";
 
 const cryptr = new Cryptr(process.env.CRYTR_KEY || "crytr_key");
 
@@ -197,7 +198,7 @@ export const userController = {
   reserveTicket: async (req, res, next) => {
     try {
       const userId = req.params.id;
-      const { ticketId, amount } = req.body;
+      const { ticketId, amount = 1 } = req.body;
 
       const user = await User.findByPk(userId);
 
@@ -333,54 +334,35 @@ export const userController = {
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
       const ticketRemainingKey = `ticket:${ticketId}:remaining`;
       const ticketQuantityKey = `${ticketKey}:quantity`;
-
-      logger.info("started getting ticketData from redis");
-      const ticketData = await redisService.getValue(ticketKey);
-      logger.info("finisehd getting ticketData from redis");
-
-      let ticketRemainingData = await redisService.getValue(ticketRemainingKey);
-      const ticketQuantityData =
-        (await redisService.getValue(ticketQuantityKey)) || 0;
-
-      if (ticketQuantityData < 1) {
-        logger.info("started removing ticketData on redis");
-        redisService.removeKey(ticketKey);
-        redisService.removeKey(ticketRemainingKey);
-        redisService.removeKey(ticketQuantityKey);
-        logger.info("finished removing ticketData on redis");
-
-        return res.status(400).json({ message: "invalid quantity" });
-      }
-
-      if (!ticketData) {
-        console.log("User has no tickets");
-        return res.status(400).json({ message: "User has no tickets" });
-      }
-
-      if (ticketRemainingData < ticketQuantityData) {
-        return res.status(400).json({ message: "No available tickets" });
-      }
-
-      let appliedPrice = ticketData.price;
-
       const couponKey = `user:${userId}:coupon:${couponId}`;
       const couponCountKey = `${couponKey}:count`;
+      const discountKey = `${user.dataValues.discountRateId}:discountRate`;
 
-      logger.info("started getting couponData from redis");
-      const couponData = await redisService.getValue(couponKey);
-      logger.info("finished getting couponDat from redis");
+      logger.info("started getting ticketData from redis");
+      let [
+        ticketData,
+        ticketRemainingData,
+        ticketQuantityData,
+        couponData,
+        couponCountData,
+        discountData,
+      ] = await redisService.mgetValue(
+        ticketKey,
+        ticketRemainingKey,
+        ticketQuantityKey,
+        couponKey,
+        couponCountKey,
+        discountKey
+      );
+      logger.info("finisehd getting ticketData from redis");
 
-      let couponCountData = await redisService.getValue(couponCountKey);
-
-      if (couponCountData < 1) {
-        logger.info("removing a couponKey from redis");
-        await redisService.removeKey(couponKey);
-        await redisService.removeKey(couponCountKey);
-        logger.info("finished removing a couponkey from redis");
-        couponCountData = 0;
+      if (!ticketData) {
+        return res.status(400).json({ message: "User has no tickets" });
       }
-
-      console.log({ couponData });
+      couponData = JSON.parse(couponData);
+      ticketData = JSON.parse(ticketData);
+      discountData = JSON.parse(discountData);
+      let appliedPrice = ticketData.price;
 
       if (couponData && couponCountData) {
         const couponAmount = parseInt(couponData.amount, 10);
@@ -392,27 +374,31 @@ export const userController = {
         } else {
           appliedPrice = Math.max(appliedPrice - couponAmount, 0);
         }
-        console.log({ couponCountKey, couponCountData, t: "ttt" });
         await redisService.increBy(couponCountKey, -1);
-        // console.log(await redisService.getValue(couponCountKey));
       }
 
-      // if (user.discountRateId) {
-      //   let discountRate = JSON.parse(
-      //     await redisService.getValue(`${user.discountRateId}-discountRate`)
-      //   );
-      //   if (!discountRate) {
-      //     discountRate = await DiscountRate.findByPk(user.discountRateId);
-      //     redisService.setValue(
-      //       `${user.discountRateId}-discountRate`,
-      //       JSON.stringify(discountRate)
-      //     );
-      //   }
+      if (couponData && couponCountData < 1) {
+        logger.info("removing a couponKey from redis");
+        await Promise.all([
+          redisService.removeKey(couponKey),
+          redisService.removeKey(couponCountKey),
+        ]);
+        logger.info("finished removing a couponkey from redis");
+      }
 
-      //   console.log(discountRate.dataValues.discountRatio, "rate");
-      //   appliedPrice -= appliedPrice * discountRate.dataValues.discountRatio;
-      //   appliedPrice = Math.ceil(appliedPrice);
-      // }
+      if (!discountData) {
+        discountData = await DiscountRate.findByPk(
+          user.dataValues.discountRateId
+        );
+        console.log("here");
+        discountData = discountData.dataValues.discountRatio;
+        await redisService.setValue(discountKey, discountData);
+      }
+
+      appliedPrice -= appliedPrice * discountData;
+      appliedPrice = Math.ceil(appliedPrice);
+
+      console.log(appliedPrice);
 
       logger.info("started creating a transaction");
       const transaction = await Transaction.create({
@@ -423,21 +409,16 @@ export const userController = {
       });
       logger.info("finished creating a transaction");
 
-      ticketRemainingData = await redisService.increBy(ticketRemainingKey, -1);
-
       logger.info("started updating a ticket info");
       await Ticket.update(
-        { remaining_number: ticketRemainingData },
+        {
+          remaining_number: sequelize.literal(
+            `remaining_number - ${ticketQuantityData}`
+          ),
+        },
         { where: { id: parseInt(ticketId, 10) } }
       );
       logger.info("finished updating a ticket info");
-      console.log(await redisService.getValue(couponCountKey));
-
-      await redisService.increBy(ticketQuantityKey, -1);
-
-      logger.info("started updating ticketData on redis");
-      redisService.setValue(ticketKey, ticketData);
-      logger.info("finished updating ticketData on redis");
 
       return res.status(200).json({ message: "Ticket purchased successfully" });
     } catch (error) {
