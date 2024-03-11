@@ -34,13 +34,18 @@ class RedisService {
     return this.client.incrby(key, amount);
   }
 
+  async decreBy(key, amount = 1) {
+    return this.client.decrby(key, amount);
+  }
+
   async removeKey(key) {
     return this.client.del(key);
   }
 
   async mgetValue(...keys) {
-    const values = await Promise.all(keys.map((key) => this.client.get(key)));
-    return values.map((value) => (value ? JSON.parse(value) : null));
+    // const values = await Promise.all(keys.map((key) => this.client.get(key)));
+    // return values.map((value) => (value ? JSON.parse(value) : null));
+    return this.client.mget(...keys);
   }
 
   async msetValue(keyValuePairs) {

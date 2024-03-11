@@ -4,8 +4,8 @@ import json
 class MyTasks(TaskSet):
     @task
     def reserve_tickets(self):
-        load_balancer_dns = "test-936966337.ap-northeast-2.elb.amazonaws.com"
-        url = f"http://{load_balancer_dns}/users/1/ticket/"
+        load_balancer_dns = "ticketing-lb-908344967.ap-northeast-2.elb.amazonaws.com"
+        url = f"http://{load_balancer_dns}/users/2/ticket/"
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({"ticketId": 3004})
         self.client.post(url, headers=headers, data=payload)
@@ -18,12 +18,16 @@ class MyUser(HttpUser):
 
 class MyCustomShape(LoadTestShape):
     stages = [
-        {"duration": 60, "users": 40000, "spawn_rate": 1000},
-        {"duration": 120, "users": 80000, "spawn_rate": 3000},
-        {"duration": 180, "users": 130000, "spawn_rate": 6000},
-        {"duration": 240, "users": 200000, "spawn_rate": 15000},
-        {"duration": 300, "users": 280000, "spawn_rate": 20000},  
-        {"duration": 350, "users": 400000, "spawn_rate": 25000},
+        {"duration": 30, "users": 1000, "spawn_rate": 500},
+        {"duration": 60, "users": 5000, "spawn_rate": 1000},
+        {"duration": 90, "users": 10000, "spawn_rate": 2000},
+        {"duration": 120, "users": 20000, "spawn_rate": 3000},
+        {"duration": 150, "users": 40000, "spawn_rate": 5000},  
+        {"duration": 180, "users": 60000, "spawn_rate": 10000},
+        {"duration": 210, "users": 90000, "spawn_rate": 15000},
+        {"duration": 240, "users": 150000, "spawn_rate": 20000},
+        {"duration": 270, "users": 200000, "spawn_rate": 25000},
+        {"duration": 300, "users": 300000, "spawn_rate": 20000},
     ]  
     stage_index = 1
     

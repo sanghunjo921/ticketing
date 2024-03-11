@@ -197,7 +197,7 @@ export const userController = {
   reserveTicket: async (req, res, next) => {
     try {
       const userId = req.params.id;
-      const { ticketId } = req.body;
+      const { ticketId, amount } = req.body;
 
       const user = await User.findByPk(userId);
 
@@ -205,25 +205,21 @@ export const userController = {
         return res.status(404).json({ error: "User not found" });
       }
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
-      const ticketRemainingKey = `${ticketKey}:remaining`;
+      const ticketRemainingKey = `ticket:${ticketId}:remaining`;
       const ticketQuantityKey = `${ticketKey}:quantity`;
 
       logger.info("started getting ticketData from redis");
-      // let ticketData = await redisService.getValue(ticketKey);
-      let [ticketData, ticketRemainingData, ticketQuantityData] =
-        await redisService.mgetValue(
-          ticketKey,
-          ticketRemainingKey,
-          ticketQuantityKey
-        );
+      let [ticketData, ticketRemainingData] = await redisService.mgetValue(
+        ticketKey,
+        ticketRemainingKey
+      );
       logger.info("finished getting ticketData from redis");
 
-      // let ticketRemainingData;
-      // let ticketQuantityData =
-      //   (await redisService.getValue(ticketQuantityKey)) || 1;
-      // if (ticketData) {
-      //   ticketRemainingData = await redisService.getValue(ticketRemainingKey);
-      // }
+      if (ticketRemainingData && ticketRemainingData < amount) {
+        return res.status(400).json({
+          error: "Insufficient remaining quantity available for reservation",
+        });
+      }
 
       if (!ticketData) {
         logger.info("started finding a ticket by a key from a db");
@@ -234,7 +230,16 @@ export const userController = {
           return res.status(404).json({ error: "Ticket not found" });
         }
 
-        ticketRemainingData = ticket.remaining_number;
+        if (!ticketRemainingData) {
+          ticketRemainingData = ticket.remaining_number;
+        }
+        if (ticketRemainingData > amount) {
+          ticketRemainingData -= amount;
+        } else {
+          return res.status(400).json({
+            error: "Insufficient remaining quantity available for reservation",
+          });
+        }
 
         ticketData = {
           status: ticket.status,
@@ -243,10 +248,13 @@ export const userController = {
         await redisService.msetValue({
           [ticketKey]: ticketData,
           [ticketRemainingKey]: ticketRemainingData,
-          [ticketQuantityKey]: 1, // Assuming default quantity is 1
+          [ticketQuantityKey]: amount,
         });
       } else {
-        await redisService.increBy(ticketQuantityKey);
+        await Promise.all([
+          await redisService.increBy(ticketQuantityKey, amount),
+          await redisService.decreBy(ticketRemainingKey, amount),
+        ]);
       }
       return res
         .status(200)
@@ -323,7 +331,7 @@ export const userController = {
       }
 
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
-      const ticketRemainingKey = `${ticketKey}:remaining`;
+      const ticketRemainingKey = `ticket:${ticketId}:remaining`;
       const ticketQuantityKey = `${ticketKey}:quantity`;
 
       logger.info("started getting ticketData from redis");
