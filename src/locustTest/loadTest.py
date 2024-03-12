@@ -4,7 +4,7 @@ from locust.runners import MasterRunner
 class MyTasks(TaskSet):
     @task
     def get_tickets(self):
-        load_balancer_dns = "test-936966337.ap-northeast-2.elb.amazonaws.com"
+        load_balancer_dns = "ticketing-lb-1001011148.ap-northeast-2.elb.amazonaws.com"
         url = f"http://{load_balancer_dns}/tickets"
         self.client.get(url)
 
