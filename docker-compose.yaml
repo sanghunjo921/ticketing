@@ -20,8 +20,6 @@ services:
         # conditiorn: service_healthy
         # restart: true
       - redis
-        # condition: service_started
-    # command: ["./wait-for-services.sh", "db:5432", "redis:6379", "npm", "start"]
     deploy:
       replicas: 5
       resources:
@@ -70,3 +68,16 @@ services:
       - "5050:8080"
     depends_on:
       - db
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+  kafka:
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181

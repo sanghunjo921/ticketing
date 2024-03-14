@@ -10,8 +10,12 @@ import { userService } from "../services/userService";
 import { redisService } from "../services/RedisService";
 import { logger } from "../middlewares/logger";
 import { sequelize } from "../db/postgres";
+import { initKafkaProducer, sendTransactionData } from "../kafka/producer";
+import { initKafkaConsumer } from "../kafka/consumer";
+import { processBatchedRequests } from "../services/cronService";
 
 const cryptr = new Cryptr(process.env.CRYTR_KEY || "crytr_key");
+const transactionsBuffer = [];
 
 export const userController = {
   signUp: async (req, res, next) => {
@@ -401,12 +405,36 @@ export const userController = {
       console.log(appliedPrice);
 
       logger.info("started creating a transaction");
-      const transaction = await Transaction.create({
+
+      const transactionData = {
         userId: user.id,
         ticketId: parseInt(ticketId, 10),
         couponId: couponData ? couponId : null,
         totalPrice: appliedPrice,
-      });
+      };
+
+      transactionsBuffer.push(transactionData);
+      processBatchedRequests(transactionsBuffer);
+
+      // const transaction = await Transaction.create({
+      //   userId: user.id,
+      //   ticketId: parseInt(ticketId, 10),
+      //   couponId: couponData ? couponId : null,
+      //   totalPrice: appliedPrice,
+      // });
+
+      // const producer = await initKafkaProducer();
+      // const transactionData = {
+      //   userId: user.id,
+      //   ticketId: parseInt(ticketId, 10),
+      //   couponId: couponData ? couponId : null,
+      //   appliedPrice: appliedPrice,
+      // };
+      // await sendTransactionData(producer, transactionData);
+
+      // const consumer = await initKafkaConsumer();
+      // await createTransaction(consumer);
+
       logger.info("finished creating a transaction");
 
       logger.info("started updating a ticket info");
