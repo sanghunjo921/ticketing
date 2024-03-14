@@ -8,6 +8,8 @@ import { couponRouter } from "./routes/couponRouter";
 import { discountRateRouter } from "./routes/discountRouter";
 import { logger } from "./middlewares/logger";
 import dotenv from "dotenv";
+import { initKafkaProducer } from "./kafka/producer";
+import { initKafkaConsumer } from "./kafka/consumer";
 
 dotenv.config();
 const app = express();
@@ -25,6 +27,7 @@ app.use(errorHandler);
 initialize()
   .then(async (message) => {
     console.log(message);
+
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       logger.info(`server${PORT}`);
