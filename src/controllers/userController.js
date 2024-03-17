@@ -10,9 +10,11 @@ import { userService } from "../services/userService";
 import { redisService } from "../services/RedisService";
 import { logger } from "../middlewares/logger";
 import { sequelize } from "../db/postgres";
-import { initKafkaProducer, sendTransactionData } from "../kafka/producer";
-import { initKafkaConsumer } from "../kafka/consumer";
 import { processBatchedRequests } from "../services/cronService";
+import {
+  publishPaymentRequestMessage,
+  setupRabbitMQ,
+} from "../rabbitMq.js/rabbitMqService";
 
 const cryptr = new Cryptr(process.env.CRYTR_KEY || "crytr_key");
 const transactionsBuffer = [];
@@ -335,12 +337,14 @@ export const userController = {
         throw new AuthError("user not found", 404);
       }
 
+      const batchSize = 5000;
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
       const ticketRemainingKey = `ticket:${ticketId}:remaining`;
       const ticketQuantityKey = `${ticketKey}:quantity`;
       const couponKey = `user:${userId}:coupon:${couponId}`;
       const couponCountKey = `${couponKey}:count`;
       const discountKey = `${user.dataValues.discountRateId}:discountRate`;
+      const transactionDataKey = "transaction";
 
       logger.info("started getting ticketData from redis");
       let [
@@ -350,13 +354,15 @@ export const userController = {
         couponData,
         couponCountData,
         discountData,
+        cachedTransactionData,
       ] = await redisService.mgetValue(
         ticketKey,
         ticketRemainingKey,
         ticketQuantityKey,
         couponKey,
         couponCountKey,
-        discountKey
+        discountKey,
+        transactionDataKey
       );
       logger.info("finisehd getting ticketData from redis");
 
@@ -381,7 +387,7 @@ export const userController = {
         await redisService.increBy(couponCountKey, -1);
       }
 
-      if (couponData && couponCountData < 1) {
+      if (couponData && couponCountData === 1) {
         logger.info("removing a couponKey from redis");
         await Promise.all([
           redisService.removeKey(couponKey),
@@ -402,9 +408,13 @@ export const userController = {
       appliedPrice -= appliedPrice * discountData;
       appliedPrice = Math.ceil(appliedPrice);
 
-      console.log(appliedPrice);
-
       logger.info("started creating a transaction");
+
+      if (!cachedTransactionData) {
+        cachedTransactionData = [];
+      } else {
+        cachedTransactionData = JSON.parse(cachedTransactionData);
+      }
 
       const transactionData = {
         userId: user.id,
@@ -413,27 +423,13 @@ export const userController = {
         totalPrice: appliedPrice,
       };
 
-      transactionsBuffer.push(transactionData);
-      processBatchedRequests(transactionsBuffer);
+      cachedTransactionData.push(transactionData);
 
-      // const transaction = await Transaction.create({
-      //   userId: user.id,
-      //   ticketId: parseInt(ticketId, 10),
-      //   couponId: couponData ? couponId : null,
-      //   totalPrice: appliedPrice,
-      // });
+      await redisService.setValue(transactionDataKey, cachedTransactionData);
 
-      // const producer = await initKafkaProducer();
-      // const transactionData = {
-      //   userId: user.id,
-      //   ticketId: parseInt(ticketId, 10),
-      //   couponId: couponData ? couponId : null,
-      //   appliedPrice: appliedPrice,
-      // };
-      // await sendTransactionData(producer, transactionData);
-
-      // const consumer = await initKafkaConsumer();
-      // await createTransaction(consumer);
+      // if (cachedTransactionData.length === batchSize) {
+      //   // await processBatchedRequests(cachedTransactionData, batchSize);
+      // }
 
       logger.info("finished creating a transaction");
 
@@ -447,6 +443,8 @@ export const userController = {
         { where: { id: parseInt(ticketId, 10) } }
       );
       logger.info("finished updating a ticket info");
+
+      // await publishPaymentRequestMessage(userId, ticketId);
 
       return res.status(200).json({ message: "Ticket purchased successfully" });
     } catch (error) {
@@ -464,7 +462,12 @@ export const userController = {
         order: [["createdAt", "DESC"]],
       });
 
-      return res.status(200).json(purchaseHistory);
+      return res.status(200).json({
+        message: "Get all purchase history",
+        data: {
+          purchaseHistory,
+        },
+      });
     } catch (error) {
       next(error);
     }

@@ -8,8 +8,9 @@ import { couponRouter } from "./routes/couponRouter";
 import { discountRateRouter } from "./routes/discountRouter";
 import { logger } from "./middlewares/logger";
 import dotenv from "dotenv";
-import { initKafkaProducer } from "./kafka/producer";
-import { initKafkaConsumer } from "./kafka/consumer";
+import { paymentRouter } from "./routes/payment";
+import { notificationRouter } from "./routes/notification";
+import { initiateCron } from "./services/cronService";
 
 dotenv.config();
 const app = express();
@@ -22,11 +23,15 @@ app.use("/tickets", ticketRouter);
 app.use("/", userRouter);
 app.use("/", couponRouter);
 app.use("/", discountRateRouter);
+app.use("/", paymentRouter);
+app.use("/", notificationRouter);
 app.use(errorHandler);
 
 initialize()
   .then(async (message) => {
     console.log(message);
+
+    initiateCron();
 
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
