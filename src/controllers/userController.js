@@ -444,7 +444,7 @@ export const userController = {
       );
       logger.info("finished updating a ticket info");
 
-      // await publishPaymentRequestMessage(userId, ticketId);
+      await publishPaymentRequestMessage(userId, ticketId);
 
       return res.status(200).json({ message: "Ticket purchased successfully" });
     } catch (error) {
