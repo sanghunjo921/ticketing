@@ -17,7 +17,6 @@ import {
 } from "../rabbitMq.js/rabbitMqService";
 
 const cryptr = new Cryptr(process.env.CRYTR_KEY || "crytr_key");
-const transactionsBuffer = [];
 
 export const userController = {
   signUp: async (req, res, next) => {
@@ -337,7 +336,6 @@ export const userController = {
         throw new AuthError("user not found", 404);
       }
 
-      const batchSize = 5000;
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
       const ticketRemainingKey = `ticket:${ticketId}:remaining`;
       const ticketQuantityKey = `${ticketKey}:quantity`;
@@ -421,15 +419,12 @@ export const userController = {
         ticketId: parseInt(ticketId, 10),
         couponId: couponData ? couponId : null,
         totalPrice: appliedPrice,
+        createdAt: Date.now(),
       };
 
       cachedTransactionData.push(transactionData);
 
       await redisService.setValue(transactionDataKey, cachedTransactionData);
-
-      // if (cachedTransactionData.length === batchSize) {
-      //   // await processBatchedRequests(cachedTransactionData, batchSize);
-      // }
 
       logger.info("finished creating a transaction");
 
@@ -444,7 +439,7 @@ export const userController = {
       );
       logger.info("finished updating a ticket info");
 
-      await publishPaymentRequestMessage(userId, ticketId);
+      // await publishPaymentRequestMessage(userId, ticketId);
 
       return res.status(200).json({ message: "Ticket purchased successfully" });
     } catch (error) {

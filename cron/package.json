@@ -1,0 +1,29 @@
+{
+  "name": "cron",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "nodemon cronService.js",
+    "dev": "nodemon --exec babel-node cronService.js",
+    "prebuild": "rm -rf dist",
+    "build": "babel . -d dist"
+  },
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.1",
+    "express-session": "^1.18.0",
+    "ioredis": "^5.3.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "redis": "^4.6.13",
+    "sequelize": "^6.37.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.24.1",
+    "@babel/core": "^7.24.3",
+    "@babel/node": "^7.23.9",
+    "@babel/preset-env": "^7.24.3",
+    "nodemon": "^3.1.0"
+  }
+}
