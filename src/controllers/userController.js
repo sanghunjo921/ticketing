@@ -429,14 +429,14 @@ export const userController = {
       logger.info("finished creating a transaction");
 
       logger.info("started updating a ticket info");
-      await Ticket.update(
-        {
-          remaining_number: sequelize.literal(
-            `remaining_number - ${ticketQuantityData}`
-          ),
-        },
-        { where: { id: parseInt(ticketId, 10) } }
-      );
+      // await Ticket.update(
+      //   {
+      //     remaining_number: sequelize.literal(
+      //       `remaining_number - ${ticketQuantityData}`
+      //     ),
+      //   },
+      //   { where: { id: parseInt(ticketId, 10) } }
+      // );
       logger.info("finished updating a ticket info");
 
       // await publishPaymentRequestMessage(userId, ticketId);
