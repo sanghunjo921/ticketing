@@ -4,7 +4,7 @@ from locust.runners import MasterRunner
 class MyTasks(TaskSet):
     @task
     def get_tickets(self):
-        url = "http://localhost:80/tickets"
+        url = "http://localhost:80/ticket"
         self.client.get(url)
 
 class MyUser(HttpUser):
