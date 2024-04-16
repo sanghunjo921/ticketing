@@ -1,16 +1,19 @@
-from locust import HttpUser, task, between, TaskSet, LoadTestShape
+from locust import HttpUser, task, between, TaskSet, LoadTestShape, FastHttpUser
 import json
+import random
 
 class MyTasks(TaskSet):
     @task
     def reserve_tickets(self):
-        url = "http://localhost:80/users/2/ticket/"
-        headers = {'Content-Type': 'application/json'}
-        payload = json.dumps({"ticketId": 9004})
+        url = "http://localhost:80/user/5924ea09-7191-416b-8267-586b38241f2d/reserve"
+        
+        headers = {'Content-Type': 'application/json', 'isPublic': 'true'}
+        ticket_id = random.randint(1,3116)
+        payload = json.dumps({"ticketId": 3116})
         self.client.post(url, headers=headers, data=payload)
 
 
-class MyUser(HttpUser):
+class MyUser(FastHttpUser):
     wait_time = between(0.5, 2)
     tasks = [MyTasks]
 
@@ -23,10 +26,6 @@ class MyCustomShape(LoadTestShape):
         {"duration": 120, "users": 20000, "spawn_rate": 3000},
         {"duration": 150, "users": 40000, "spawn_rate": 5000},  
         {"duration": 180, "users": 60000, "spawn_rate": 10000},
-        # {"duration": 210, "users": 90000, "spawn_rate": 15000},
-        # {"duration": 240, "users": 150000, "spawn_rate": 20000},
-        # {"duration": 270, "users": 200000, "spawn_rate": 25000},
-        # {"duration": 300, "users": 300000, "spawn_rate": 20000},
     ]  
     stage_index = 1
     

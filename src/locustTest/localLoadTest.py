@@ -1,4 +1,4 @@
-from locust import HttpUser, task, between, LoadTestShape, TaskSet
+from locust import HttpUser, task, between, LoadTestShape, TaskSet, FastHttpUser
 from locust.runners import MasterRunner
 
 class MyTasks(TaskSet):
@@ -7,7 +7,7 @@ class MyTasks(TaskSet):
         url = "http://localhost:80/ticket"
         self.client.get(url)
 
-class MyUser(HttpUser):
+class MyUser(FastHttpUser):
     wait_time = between(0.5, 2)
     tasks = [MyTasks]
 
@@ -17,7 +17,8 @@ class MyCustomShape(LoadTestShape):
         {"duration": 120, "users": 140000, "spawn_rate": 3200},
         {"duration": 180, "users": 240000, "spawn_rate": 6666},
         {"duration": 240, "users": 360000, "spawn_rate": 12000},
-        {"duration": 300, "users": 500000, "spawn_rate": 28000},      
+        {"duration": 300, "users": 500000, "spawn_rate": 28000},  
+        {"duration": 330, "users": 600000, "spawn_rate": 30000},    
     ] 
     # 700000, 40000/s 
     stage_index = 1
