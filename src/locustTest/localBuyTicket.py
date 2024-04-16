@@ -1,17 +1,18 @@
 
-from locust import HttpUser, task, between, TaskSet, LoadTestShape
+from locust import HttpUser, task, between, TaskSet, LoadTestShape, FastHttpUser
 import json
 
 class MyTasks(TaskSet):
     @task
     def reserve_tickets(self):
-        url = "http://localhost:80/users/18/tickets/9004/purchase/"
+        # url = "http://localhost:80/users/18/tickets/10006/purchase/"
+        url = "http://localhost:80/user/5924ea09-7191-416b-8267-586b38241f2d/ticket/3116/purchase"
         headers = {'Content-Type': 'application/json'}
         payload = json.dumps({"couponId": 1})
         self.client.post(url, headers=headers, data=payload)
 
 
-class MyUser(HttpUser):
+class MyUser(FastHttpUser):
     wait_time = between(0.5, 2)
     tasks = [MyTasks]
 
