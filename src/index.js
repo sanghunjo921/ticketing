@@ -30,9 +30,7 @@ app.use(errorHandler);
 initialize()
   .then(async (message) => {
     console.log(message);
-
-    initiateCron();
-
+    // initiateCron();
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       logger.info(`server${PORT}`);
