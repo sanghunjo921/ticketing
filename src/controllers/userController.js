@@ -203,7 +203,7 @@ export const userController = {
   reserveTicket: async (req, res, next) => {
     try {
       const userId = req.params.id;
-      const { ticketId, amount = 1 } = req.body;
+      const { ticketId, quantity = 1 } = req.body;
 
       const user = await User.findByPk(userId);
 
@@ -221,7 +221,7 @@ export const userController = {
       );
       logger.info("finished getting ticketData from redis");
 
-      if (ticketRemainingData && ticketRemainingData < amount) {
+      if (ticketRemainingData && ticketRemainingData < quantity) {
         return res.status(400).json({
           error: "Insufficient remaining quantity available for reservation",
         });
@@ -239,8 +239,8 @@ export const userController = {
         if (!ticketRemainingData) {
           ticketRemainingData = ticket.remaining_number;
         }
-        if (ticketRemainingData > amount) {
-          ticketRemainingData -= amount;
+        if (ticketRemainingData >= ticketRemainingData + quantity) {
+          ticketRemainingData -= quantity;
         } else {
           return res.status(400).json({
             error: "Insufficient remaining quantity available for reservation",
@@ -254,12 +254,12 @@ export const userController = {
         await redisService.msetValue({
           [ticketKey]: ticketData,
           [ticketRemainingKey]: ticketRemainingData,
-          [ticketQuantityKey]: amount,
+          [ticketQuantityKey]: quantity,
         });
       } else {
         await Promise.all([
-          await redisService.increBy(ticketQuantityKey, amount),
-          await redisService.decreBy(ticketRemainingKey, amount),
+          await redisService.increBy(ticketQuantityKey, quantity),
+          await redisService.decreBy(ticketRemainingKey, quantity),
         ]);
       }
       return res
@@ -328,17 +328,13 @@ export const userController = {
     const couponId = req.body.couponId;
 
     try {
-      const user = await User.findByPk(userId, {
-        include: [],
-      });
+      const user = await User.findByPk(userId);
 
       if (!user) {
         throw new AuthError("user not found", 404);
       }
 
       const ticketKey = `user:${userId}:ticket:${ticketId}`;
-      const ticketRemainingKey = `ticket:${ticketId}:remaining`;
-      const ticketQuantityKey = `${ticketKey}:quantity`;
       const couponKey = `user:${userId}:coupon:${couponId}`;
       const couponCountKey = `${couponKey}:count`;
       const discountKey = `${user.dataValues.discountRateId}:discountRate`;
@@ -347,16 +343,12 @@ export const userController = {
       logger.info("started getting ticketData from redis");
       let [
         ticketData,
-        ticketRemainingData,
-        ticketQuantityData,
         couponData,
         couponCountData,
         discountData,
         cachedTransactionData,
       ] = await redisService.mgetValue(
         ticketKey,
-        ticketRemainingKey,
-        ticketQuantityKey,
         couponKey,
         couponCountKey,
         discountKey,
@@ -398,7 +390,6 @@ export const userController = {
         discountData = await DiscountRate.findByPk(
           user.dataValues.discountRateId
         );
-        console.log("here");
         discountData = discountData.dataValues.discountRatio;
         await redisService.setValue(discountKey, discountData);
       }
@@ -424,20 +415,9 @@ export const userController = {
 
       cachedTransactionData.push(transactionData);
 
-      await redisService.setValue(transactionDataKey, cachedTransactionData);
+      // await redisService.setValue(transactionDataKey, cachedTransactionData);
 
       logger.info("finished creating a transaction");
-
-      logger.info("started updating a ticket info");
-      // await Ticket.update(
-      //   {
-      //     remaining_number: sequelize.literal(
-      //       `remaining_number - ${ticketQuantityData}`
-      //     ),
-      //   },
-      //   { where: { id: parseInt(ticketId, 10) } }
-      // );
-      logger.info("finished updating a ticket info");
 
       // await publishPaymentRequestMessage(userId, ticketId);
 
